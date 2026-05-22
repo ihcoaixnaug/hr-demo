@@ -1,0 +1,20 @@
+# Streamlit secrets — 含 API Key，绝对不上传
+.streamlit/secrets.toml
+
+# SQLite 数据库（运行时生成）
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

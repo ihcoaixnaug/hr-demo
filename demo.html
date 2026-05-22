@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智筛 AI · 可信简历筛选系统</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    input[type=range] { accent-color: #3b82f6; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+
+const DIMS_DEFAULT = [
+  { id: "project",       label: "项目经验",   weight: 35 },
+  { id: "tech",          label: "技术技能",   weight: 30 },
+  { id: "collab",        label: "跨部门协作", weight: 20 },
+  { id: "communication", label: "表达能力",   weight: 15 },
+];
+
+// ─── 岗位预设 ─────────────────────────────────────────────────────────────────
+
+const JOB_PRESETS = {
+  pm: {
+    key: "pm",
+    label: "产品经理实习生",
+    desc: "负责产品需求分析与迭代推进",
+    color: "blue",
+    dims: [
+      { id: "project",       label: "项目经验",   weight: 35 },
+      { id: "tech",          label: "技术技能",   weight: 30 },
+      { id: "collab",        label: "跨部门协作", weight: 20 },
+      { id: "communication", label: "表达能力",   weight: 15 },
+    ],
+    jd: `岗位职责：
+· 参与用户增长或内容产品的需求调研与分析，输出产品需求文档（PRD）
+· 独立跟进功能从立项到上线的完整产品周期，协调研发、设计、运营多方资源
+· 通过数据分析工具（如 SQL、Excel、Tableau）追踪核心指标，驱动产品优化
+· 参与用户访谈和竞品分析，提炼用户痛点并转化为可执行方案
+
+任职要求：
+· 有实际落地的产品或项目主导经验，能清晰描述从问题定义到上线的完整过程
+· 具备基础数据分析能力，熟练使用 Excel 或 SQL；了解 Python 者优先
+· 具备良好的跨部门沟通能力，能在多方协作中推动项目进展
+· 逻辑表达清晰，能用结构化方式呈现思路和方案`,
+  },
+  dev: {
+    key: "dev",
+    label: "后端开发实习生",
+    desc: "负责服务端功能开发与性能优化",
+    color: "purple",
+    dims: [
+      { id: "coding",  label: "技术与算法", weight: 40 },
+      { id: "project", label: "项目经验",   weight: 30 },
+      { id: "problem", label: "问题解决",   weight: 20 },
+      { id: "collab",  label: "协作与表达", weight: 10 },
+    ],
+    jd: `岗位职责：
+· 参与服务端核心功能开发，负责接口设计、编码实现与单元测试
+· 协同前端、测试、产品同学完成需求从设计到上线的完整交付流程
+· 参与代码 Review，识别并修复性能瓶颈或潜在 Bug
+· 输出技术方案文档，确保模块逻辑清晰可维护
+
+任职要求：
+· 有独立完成的后端项目经验（个人项目、开源贡献均可），能描述从设计到上线的完整过程
+· 熟练掌握至少一门后端语言（Java/Go/Python），熟悉常见数据库和缓存机制
+· 具备基础的跨团队沟通能力，能与前端、产品高效对齐需求
+· 表达清晰，能用技术文档或口头说明准确传达方案思路`,
+  },
+};
+
+const CANDIDATES = [
+  {
+    id: "A", job: "pm", name: "王芳",
+    school: "复旦大学", tag: "985", major: "工商管理",
+    summary: "主导校内创业项目「复小助」增长方案，DAU 从 200 增至 1500。熟练 SQL+Python，做过用户分层与 A/B 测试分析。",
+    scores: { project: 85, tech: 80, collab: 86, communication: 86 },
+    reasons: {
+      project: "独立主导学生创业项目的增长策略，有从 0 到 1 的产品推进经历，符合规则「有实际项目主导经验」要求。",
+      tech: "熟练使用 SQL 和 Python 做用户分层及 A/B 测试，数据分析能力与岗位要求匹配度高。",
+      collab: "作为唯一产品同学协调 3 名研发、2 名运营，跨职能协作经验扎实。",
+      communication: "简历结构清晰，项目描述量化具体，逻辑表达质量高。",
+    },
+    result: "强推进面试", color: "green",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.5/4.0",
+      experiences: [
+        {
+          title: "产品负责人 · 「复小助」校园生活助手小程序",
+          org: "复旦大学创业实践项目", period: "2023.03 – 2024.02",
+          bullets: [
+            "独立完成用户调研（访谈 40+）、产品原型设计及需求优先级排序，主导 3 轮核心功能迭代",
+            "上线后 DAU 从 200 增长至 1500，通过漏斗分析定位留存瓶颈，次日留存率从 28% 提升至 51%",
+            "协调 3 名研发、2 名运营、1 名设计师，每周主持需求对齐会，项目按时交付零延期",
+          ],
+        },
+        {
+          title: "产品运营实习生",
+          org: "某互联网公司（上海）", period: "2023.07 – 2023.09",
+          bullets: [
+            "参与新用户激活流程优化，用 SQL 分析注册漏斗，输出 2 份数据报告并推动页面改版",
+            "独立完成一次 A/B 测试方案设计，显著提升按钮点击率（+18%）",
+          ],
+        },
+      ],
+      skills: "SQL · Python（pandas/matplotlib）· Axure · Excel · Figma（基础）",
+      awards: "复旦大学 2023 年度优秀学生项目 · 校级奖学金",
+    },
+  },
+  {
+    id: "B", job: "pm", name: "陈志远",
+    school: "深圳大学", tag: "双非", major: "软件工程",
+    summary: "主导开发两款校园小程序，日活超 2000。独立完成需求调研→原型→上线全流程，熟练 React/Node.js，有数据分析项目经验。",
+    scores: { project: 92, tech: 88, collab: 85, communication: 88 },
+    reasons: {
+      project: "主导两个项目从 0 到 1 落地，独立覆盖完整产品周期，项目结果量化清晰，符合规则第 1 条要求。",
+      tech: "熟练掌握 React/Node.js，有 Python 数据分析实战经验，技术栈与岗位高度匹配。",
+      collab: "需求调研阶段独立跨部门沟通，与设计、运营深度协作推动产品迭代，协作能力突出。",
+      communication: "简历逻辑清晰，项目描述量化具体，技术与产品视角兼顾，表达质量高。",
+    },
+    result: "强推进面试", color: "green",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.7/4.0",
+      experiences: [
+        {
+          title: "主理人 · 「今天吃什么」校园餐厅推荐小程序",
+          org: "个人项目", period: "2023.01 – 2023.12",
+          bullets: [
+            "独立完成用户调研、产品设计（Axure 原型）、前后端开发（React + Node.js）及上线运营全流程",
+            "上线后日活峰值 2300，通过埋点分析发现核心流失节点，迭代后次日留存率从 33% 提升至 49%",
+            "主动联系学校餐饮中心获取菜单数据接口授权，协调 2 名运营同学负责内容更新",
+          ],
+        },
+        {
+          title: "主理人 · 「二手好物」校园闲置交易小程序",
+          org: "个人项目", period: "2022.09 – 2023.06",
+          bullets: [
+            "从 0 设计交易流程，解决信任与支付安全问题，上线 3 个月内日均交易额突破 8000 元",
+            "用 Python 分析用户行为数据，发现「图片质量」是转化核心因子，推动拍照引导功能上线",
+          ],
+        },
+      ],
+      skills: "React · Node.js · Python（pandas）· MySQL · Axure · 微信小程序开发",
+      awards: "深圳大学 2023 年度优秀学生项目 · 校级创新创业大赛二等奖",
+    },
+  },
+  {
+    id: "C", job: "pm", name: "张浩然",
+    school: "东南大学", tag: "985", major: "信息管理",
+    summary: "参与导师科研项目，负责数据清洗和报告撰写。两段实习（运营助理、数据分析助理），工具熟练度较好，均为执行角色。",
+    scores: { project: 68, tech: 72, collab: 74, communication: 70 },
+    reasons: {
+      project: "有科研参与经历，但以执行为主，未体现产品思维与主导能力，缺乏完整项目主导案例。",
+      tech: "数据工具掌握较好，SQL 和 Excel 熟练，但未有自主数据分析项目，应用深度有限。",
+      collab: "两段实习均有多人合作，执行层协作能力稳健，但缺乏主动推动跨部门对齐的经历。",
+      communication: "简历信息完整，表达中规中矩，缺乏有冲击力的亮点描述。",
+    },
+    result: "待定", color: "yellow",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.4/4.0",
+      experiences: [
+        {
+          title: "科研助理",
+          org: "东南大学信息管理系（导师项目）", period: "2023.03 – 2023.12",
+          bullets: [
+            "负责问卷数据清洗与 Excel 统计整理，支持导师完成 2 篇论文的数据部分",
+            "撰写 3 份调研报告，数据可视化使用 Excel 图表",
+          ],
+        },
+        {
+          title: "数据分析助理实习生",
+          org: "某零售公司（南京）", period: "2023.07 – 2023.09",
+          bullets: [
+            "每日更新销售数据报表（Excel + SQL），按时交付给业务团队",
+            "协助完成一次促销活动效果分析，主要工作为数据提取和图表制作",
+          ],
+        },
+        {
+          title: "运营助理实习生",
+          org: "某本地生活平台", period: "2022.12 – 2023.02",
+          bullets: [
+            "负责内容发布与社群维护，按照既定 SOP 执行，未参与策略制定",
+          ],
+        },
+      ],
+      skills: "SQL · Excel（含透视表）· Python（了解）· PPT",
+      awards: "东南大学 2023 年度学业优秀奖学金",
+    },
+  },
+  {
+    id: "D", job: "pm", name: "李思琪",
+    school: "浙江大学", tag: "985", major: "计算机科学",
+    summary: "GPA 3.8，获校级奖学金。参加多个社团，担任文艺部部长。有一段后端开发实习，主要负责 CRUD 接口，无产品经历。",
+    scores: { project: 45, tech: 58, collab: 62, communication: 55 },
+    reasons: {
+      project: "无任何产品主导经历，实习为执行层后端开发，未展现产品思维、用户视角或业务判断能力。",
+      tech: "后端基础尚可，但岗位所需的数据分析、产品工具（Axure/SQL）均未掌握，技能错位明显。",
+      collab: "社团活动有一定组织能力，但均为同学间协作，与工作场景跨职能协作差距较大。",
+      communication: "简历以学历和荣誉铺陈为主，项目描述仅一行，缺乏具体成果和量化表达。",
+    },
+    result: "不推进", color: "red",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.8/4.0",
+      experiences: [
+        {
+          title: "后端开发实习生",
+          org: "某软件公司（杭州）", period: "2023.07 – 2023.09",
+          bullets: [
+            "负责用户模块若干 CRUD 接口的编写与联调，使用 Java Spring Boot",
+            "修复 3 个已知 Bug，参与 2 次代码 Review",
+          ],
+        },
+        {
+          title: "文艺部部长",
+          org: "浙江大学学生会", period: "2022.10 – 2023.10",
+          bullets: [
+            "组织校内文艺汇演 4 场，协调表演者、场地与宣传部门",
+            "部门日常管理，带领 12 名部员完成学期活动计划",
+          ],
+        },
+      ],
+      skills: "Java · Spring Boot · Git · Python（了解）· PPT",
+      awards: "浙江大学 2022-2023 学年校级奖学金 · 优秀学生干部",
+    },
+  },
+  {
+    id: "E", job: "pm", name: "刘晓晨",
+    school: "广东工业大学", tag: "双非", major: "市场营销",
+    summary: "参与一次校内 App 开发，仅负责需求文档整理。主要实习经历为行政助理，与产品岗相关性低，工具技能薄弱。",
+    scores: { project: 38, tech: 48, collab: 55, communication: 50 },
+    reasons: {
+      project: "仅参与过一次校内项目的文档整理，无产品主导经历，未体现从需求到上线的任何环节。",
+      tech: "工具技能停留在 PPT/Word 基础操作，无 SQL、Python 或产品原型工具使用经验。",
+      collab: "行政实习有一定事务协调，但性质与产品岗跨职能协作差距明显。",
+      communication: "简历篇幅较长但内容空洞，大量使用「负责」「协助」「参与」等模糊动词，无量化结果。",
+    },
+    result: "不推进", color: "red",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.1/4.0",
+      experiences: [
+        {
+          title: "需求文档协作者 · 校园跑腿 App",
+          org: "课程大作业团队项目", period: "2023.03 – 2023.06",
+          bullets: [
+            "负责将小组讨论内容整理为需求文档（Word），共 2 份",
+            "未参与原型设计、开发对接或上线后运营",
+          ],
+        },
+        {
+          title: "行政助理实习生",
+          org: "某贸易公司（广州）", period: "2023.07 – 2023.08",
+          bullets: [
+            "负责文件归档、会议记录、快递收发等日常行政事务",
+            "协助 HR 部门整理招聘信息表格",
+          ],
+        },
+      ],
+      skills: "PPT · Word · Excel（基础）",
+      awards: "无",
+    },
+  },
+
+  // ── 后端开发岗候选人 ──
+  {
+    id: "F", job: "dev", name: "吴佳琪",
+    school: "杭州电子科技大学", tag: "双非", major: "计算机科学",
+    summary: "用 Go 独立实现 mini-Redis，有开源 PR 被 merge。LeetCode 420+，后端实习独立负责用户服务模块。",
+    scores: { coding: 91, project: 88, problem: 85, collab: 82 },
+    reasons: {
+      coding: "LeetCode 420+，手写 mini-Redis 说明底层理解扎实，Go 语言熟练度高，符合岗位技术要求。",
+      project: "个人项目有完整设计思路和上线经验，实习独立负责模块开发，项目主导性强。",
+      problem: "能识别性能瓶颈并主动优化（连接池 PR），展现出超出执行层的架构思维。",
+      collab: "实习期间与前端、测试同学协作顺畅，文档输出习惯良好。",
+    },
+    result: "强推进面试", color: "green",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.8/4.0",
+      experiences: [
+        {
+          title: "后端开发实习生",
+          org: "某互联网公司（杭州）", period: "2023.07 – 2023.10",
+          bullets: [
+            "独立负责用户服务模块重构，接口响应时间降低 38%，输出接口文档供前端对接",
+            "发现线上连接池配置问题，提出并实施优化方案，消除一类高频超时错误",
+          ],
+        },
+        {
+          title: "开源贡献 · github.com/某项目",
+          org: "个人贡献", period: "2023.03 – 至今",
+          bullets: [
+            "提交连接池复用优化 PR，经 Reviewer 审核后合并，累计贡献约 600 行",
+            "参与 Issue 讨论，协助复现并定位 2 个并发 Bug",
+          ],
+        },
+        {
+          title: "mini-Redis 个人项目（Go 语言）",
+          org: "个人项目", period: "2022.11 – 2023.02",
+          bullets: [
+            "独立实现 SET/GET/EXPIRE/LPUSH 等核心命令，支持 RDB 持久化",
+            "编写单元测试覆盖率 82%，README 文档完整",
+          ],
+        },
+      ],
+      skills: "Go · Java · MySQL · Redis · Docker · LeetCode 420+",
+      awards: "杭州电子科技大学 2023 年度优秀毕业设计（提名）",
+    },
+  },
+  {
+    id: "G", job: "dev", name: "赵明远",
+    school: "南京大学", tag: "985", major: "软件工程",
+    summary: "主导校园外卖系统后端架构设计，处理高并发场景。字节跳动后端实习，负责推荐系统模块功能开发。",
+    scores: { coding: 88, project: 86, problem: 87, collab: 80 },
+    reasons: {
+      coding: "Java/Spring Boot 熟练，理解分布式基础，算法能力在实际项目中有验证。",
+      project: "校园外卖系统主导设计，实习参与推荐系统，项目覆盖面广且有一定复杂度。",
+      problem: "能针对高并发场景做针对性设计（缓存、消息队列），问题解决思路清晰。",
+      collab: "实习有跨团队对接经验，但文档输出描述较少，协作深度有待确认。",
+    },
+    result: "强推进面试", color: "green",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.6/4.0",
+      experiences: [
+        {
+          title: "后端开发实习生",
+          org: "字节跳动（北京）", period: "2023.06 – 2023.09",
+          bullets: [
+            "参与推荐系统召回模块功能迭代，独立开发 2 个新特征的接入逻辑",
+            "协作完成一次上线 A/B 实验，负责后端指标埋点与数据校验",
+          ],
+        },
+        {
+          title: "校园外卖平台后端负责人",
+          org: "个人+团队项目", period: "2022.10 – 2023.05",
+          bullets: [
+            "主导后端架构设计，引入 Redis 缓存和 RabbitMQ 削峰，支撑高峰期 500+ QPS",
+            "设计数据库 Schema，与前端同学协商制定 RESTful 接口规范",
+          ],
+        },
+      ],
+      skills: "Java · Spring Boot · MySQL · Redis · Kafka · Docker",
+      awards: "南京大学 2022-2023 学年人民奖学金",
+    },
+  },
+  {
+    id: "H", job: "dev", name: "林浩宇",
+    school: "华中科技大学", tag: "985", major: "计算机科学",
+    summary: "课程项目以 CRUD 为主，一段测试实习。算法基础尚可，但无独立后端项目主导经历，工程经验有限。",
+    scores: { coding: 68, project: 55, problem: 62, collab: 72 },
+    reasons: {
+      coding: "算法基础中等，Java 语法熟练，但缺乏实际系统设计和性能优化的工程经验。",
+      project: "项目以课程作业为主，CRUD 为核心，未接触分布式、缓存等后端核心议题。",
+      problem: "实习为测试岗，以编写用例为主，主动发现和解决系统问题的经历不足。",
+      collab: "测试实习有跨职能对接，沟通能力尚可，表达清晰。",
+    },
+    result: "待定", color: "yellow",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.3/4.0",
+      experiences: [
+        {
+          title: "测试工程师实习生",
+          org: "某软件公司（武汉）", period: "2023.07 – 2023.09",
+          bullets: [
+            "编写功能测试用例约 200 条，执行回归测试并记录 Bug",
+            "与开发同学对接缺陷修复，跟进问题闭环",
+          ],
+        },
+        {
+          title: "学生管理系统（课程作业）",
+          org: "华中科技大学软件工程课程", period: "2023.03 – 2023.06",
+          bullets: [
+            "使用 Java Spring Boot + MySQL 实现学生信息 CRUD 功能",
+            "完成基础登录鉴权模块，代码托管于 GitHub",
+          ],
+        },
+      ],
+      skills: "Java · Spring Boot · MySQL · Python（基础）· Git",
+      awards: "华中科技大学 2022-2023 学年三等奖学金",
+    },
+  },
+  {
+    id: "I", job: "dev", name: "周晓敏",
+    school: "西安交通大学", tag: "985", major: "信息安全",
+    summary: "主要经历为数学建模竞赛，与后端开发相关性低。无后端项目经验，编程基础薄弱，技能栈不符合岗位要求。",
+    scores: { coding: 35, project: 32, problem: 40, collab: 58 },
+    reasons: {
+      coding: "主要语言为 Python（数据处理），无 Java/Go 经验，算法竞赛背景但无工程实战，与岗位技术要求差距明显。",
+      project: "无任何后端项目经历，数学建模经历与后端开发岗位诉求高度不匹配。",
+      problem: "竞赛思维与工程问题解决思维差异较大，缺乏系统设计和调试经验。",
+      collab: "有竞赛团队协作经历，沟通能力中等，但缺乏工程项目中的跨职能协作经验。",
+    },
+    result: "不推进", color: "red",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.5/4.0",
+      experiences: [
+        {
+          title: "数学建模国家级竞赛",
+          org: "西安交通大学参赛团队", period: "2022.09 – 2023.04",
+          bullets: [
+            "参与全国大学生数学建模竞赛，负责数据处理与 Python 可视化模块",
+            "获省级二等奖",
+          ],
+        },
+        {
+          title: "行政助理实习生",
+          org: "某国企（西安）", period: "2023.07 – 2023.08",
+          bullets: [
+            "负责部门日常文件整理与会议安排",
+            "与后端开发工作无直接关联",
+          ],
+        },
+      ],
+      skills: "Python（数据处理）· MATLAB · Excel · Java（了解）",
+      awards: "全国大学生数学建模竞赛省级二等奖 · 西安交通大学学业优秀奖学金",
+    },
+  },
+  {
+    id: "J", job: "dev", name: "郑凯文",
+    school: "河南工业大学", tag: "双非", major: "软件工程",
+    summary: "有 Vue 前端项目经验，后端仅做过简单 CRUD 接口，无独立系统设计经历，算法基础薄弱。",
+    scores: { coding: 38, project: 35, problem: 42, collab: 60 },
+    reasons: {
+      coding: "技术栈偏前端（Vue/JS），后端语言仅 Java 入门水平，无算法竞赛或深度工程实践，与岗位核心技术要求差距明显。",
+      project: "所列项目为前后端一体的课程作业，后端部分仅包含简单 CRUD 接口，未体现独立系统设计与上线经验。",
+      problem: "无复杂工程 Bug 排查或性能优化经历，问题解决案例停留在课程层面，缺乏实战深度。",
+      collab: "有小组课设协作经历，但无跨职能工程团队合作记录，表达尚可。",
+    },
+    result: "不推进", color: "red",
+    resume: {
+      period: "2022.09 – 至今", gpa: "3.2/4.0",
+      experiences: [
+        {
+          title: "校园二手交易平台（课程项目）",
+          org: "河南工业大学软件工程课设", period: "2023.03 – 2023.06",
+          bullets: [
+            "负责前端页面开发（Vue 2），对接后端同学提供的 REST 接口",
+            "后端部分仅参与用户登录、商品列表两个接口的编写",
+          ],
+        },
+        {
+          title: "前端开发实习生",
+          org: "郑州某中小型 SaaS 公司", period: "2023.07 – 2023.09",
+          bullets: [
+            "负责管理后台页面维护，使用 Vue 3 + Element Plus",
+            "未接触后端代码，与后端开发岗核心职责不匹配",
+          ],
+        },
+      ],
+      skills: "Vue 2/3 · JavaScript · Java（入门）· MySQL（基础）",
+      awards: "无",
+    },
+  },
+];
+
+const STYLE = {
+  green:  { bg: "bg-emerald-50",  border: "border-emerald-300", text: "text-emerald-700",  badge: "bg-emerald-100 text-emerald-700"  },
+  yellow: { bg: "bg-amber-50",    border: "border-amber-300",   text: "text-amber-700",    badge: "bg-amber-100 text-amber-700"     },
+  red:    { bg: "bg-red-50",      border: "border-red-300",     text: "text-red-700",      badge: "bg-red-100 text-red-600"         },
+};
+
+const TAG_STYLE = {
+  "985":  "bg-purple-100 text-purple-700",
+  "211":  "bg-blue-100 text-blue-700",
+  "双非": "bg-gray-100 text-gray-600",
+};
+
+function weighted(scores, dims) {
+  let t = 0, w = 0;
+  dims.forEach(d => { t += scores[d.id] * d.weight; w += d.weight; });
+  return Math.round(t / w);
+}
+
+// 生成规则指纹：对维度内容做简单哈希，规则一旦改变指纹随之改变
+function ruleFingerprint(dims) {
+  const str = JSON.stringify(dims.map(d => ({ id: d.id, weight: d.weight })));
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).toUpperCase().padStart(8, "0");
+}
+
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+
+function Bar({ value }) {
+  const c = value >= 80 ? "bg-emerald-500" : value >= 65 ? "bg-blue-500" : "bg-red-400";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+        <div className={`h-1.5 rounded-full ${c}`} style={{ width: `${value}%`, transition: "width .5s" }} />
+      </div>
+      <span className="text-xs font-mono w-6 text-right text-gray-400">{value}</span>
+    </div>
+  );
+}
+
+// ─── Resume Modal ─────────────────────────────────────────────────────────────
+
+function ResumeModal({ candidate, onClose }) {
+  if (!candidate) return null;
+  const { resume } = candidate;
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl mb-10" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="font-bold text-gray-900 text-base">{candidate.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{candidate.school} · {candidate.major} · {candidate.tag}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-lg transition-colors">✕</button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5 text-sm">
+          {/* Education */}
+          <section>
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">教育背景</h4>
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="font-medium text-gray-800">{candidate.school}</span>
+                <span className="text-gray-500 ml-2">{candidate.major}</span>
+              </div>
+              <span className="text-xs text-gray-400 shrink-0 ml-4">{resume.period}</span>
+            </div>
+            {resume.gpa && <p className="text-xs text-gray-500 mt-0.5">GPA {resume.gpa}</p>}
+          </section>
+
+          {/* Experience */}
+          <section>
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">项目 / 实习经历</h4>
+            <div className="space-y-4">
+              {resume.experiences.map((exp, i) => (
+                <div key={i} className="border-l-2 border-gray-200 pl-3 space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium text-gray-800 leading-snug">{exp.title}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{exp.period}</span>
+                  </div>
+                  <p className="text-xs text-gray-400">{exp.org}</p>
+                  <ul className="space-y-1 mt-1">
+                    {exp.bullets.map((b, j) => (
+                      <li key={j} className="text-xs text-gray-600 flex gap-1.5 leading-relaxed">
+                        <span className="text-gray-300 mt-0.5 shrink-0">·</span><span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Skills */}
+          <section>
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">技能</h4>
+            <p className="text-xs text-gray-600 leading-relaxed">{resume.skills}</p>
+          </section>
+
+          {/* Awards */}
+          {resume.awards && resume.awards !== "无" && (
+            <section>
+              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">荣誉奖项</h4>
+              <p className="text-xs text-gray-600 leading-relaxed">{resume.awards}</p>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page 1: Rule Builder ─────────────────────────────────────────────────────
+
+function RuleBuilder({ onLock, openPublicPage, onGoToScreen, onReset }) {
+  const [selectedJob, setSelectedJob] = useState(null); // "pm" | "dev" | null
+  const [showCustom, setShowCustom]   = useState(false);
+  const [customJd, setCustomJd]       = useState("");
+  const [dims, setDims]               = useState(DIMS_DEFAULT);
+  const [extracted, setEx]            = useState(false);
+  const [locked, setLocked]           = useState(false);
+  const [lockedAt, setLocAt]          = useState("");
+  const [fingerprint, setFP]          = useState("");
+  const [copied, setCopied]           = useState(false);
+  const [showJd, setShowJd]           = useState(false);
+
+  const total = dims.reduce((s, d) => s + d.weight, 0);
+
+  function selectJob(key) {
+    const preset = JOB_PRESETS[key];
+    setSelectedJob(key);
+    setDims(preset.dims);
+    setEx(true);
+    setShowCustom(false);
+    setShowJd(false);
+  }
+
+  return (
+    <div className="max-w-xl mx-auto space-y-5 fade-in">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">规则构建</h2>
+        <p className="text-sm text-gray-500 mt-1">选择招募岗位，AI 自动加载评估维度，确认后锁定发布</p>
+      </div>
+
+      {/* Job preset cards */}
+      {!locked && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <p className="text-sm font-medium text-gray-700">选择招募岗位</p>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.values(JOB_PRESETS).map(p => (
+              <button key={p.key} onClick={() => selectJob(p.key)}
+                className={`p-3 rounded-xl border-2 text-left transition-all ${selectedJob === p.key ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}>
+                <div className={`text-sm font-semibold ${selectedJob === p.key ? "text-blue-700" : "text-gray-800"}`}>{p.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{p.desc}</div>
+              </button>
+            ))}
+          </div>
+          <button onClick={() => { setShowCustom(!showCustom); setSelectedJob(null); setEx(false); }}
+            className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+            自定义 JD
+          </button>
+          {showCustom && (
+            <div className="space-y-2 fade-in">
+              <textarea rows={4} value={customJd} onChange={e => setCustomJd(e.target.value)}
+                placeholder="粘贴自定义岗位 JD…"
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              <button disabled={!customJd.trim()}
+                onClick={() => { setEx(true); setDims(DIMS_DEFAULT); }}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors">
+                AI 提取维度
+              </button>
+            </div>
+          )}
+          {extracted && selectedJob && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-emerald-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                  已加载「{JOB_PRESETS[selectedJob].label}」评估维度
+                </p>
+                <button onClick={() => setShowJd(v => !v)}
+                  className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">
+                  查看岗位 JD {showJd ? "▲" : "▼"}
+                </button>
+              </div>
+              {showJd && (
+                <pre className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed whitespace-pre-wrap fade-in">{JOB_PRESETS[selectedJob].jd}</pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {locked && (
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+          <div className={`w-2 h-2 rounded-full bg-blue-500 shrink-0`}/>
+          <div>
+            <span className="text-sm font-medium text-gray-800">{selectedJob ? JOB_PRESETS[selectedJob].label : "自定义岗位"}</span>
+            <span className="text-xs text-gray-400 ml-2">当前筛选岗位</span>
+          </div>
+        </div>
+      )}
+
+      {/* Dimensions */}
+      {(extracted || locked) && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">评估维度与权重</span>
+            <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${total === 100 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+              总计 {total}%
+            </span>
+          </div>
+          {dims.map(d => (
+            <div key={d.id} className="flex items-center gap-3">
+              <span className="w-24 text-sm text-gray-700 shrink-0">{d.label}</span>
+              <input type="range" min={5} max={60} value={d.weight} disabled={locked}
+                onChange={e => setDims(dims.map(x => x.id === d.id ? {...x, weight: +e.target.value} : x))}
+                className="flex-1" />
+              <span className="w-10 text-right text-sm font-mono text-gray-600">{d.weight}%</span>
+            </div>
+          ))}
+          {total !== 100 && !locked && (
+            <p className="text-xs text-amber-600">⚠ 权重总和需为 100%（当前 {total}%）</p>
+          )}
+        </div>
+      )}
+
+      {/* Lock button */}
+      {extracted && !locked && (
+        <button disabled={total !== 100}
+          onClick={() => {
+            const fp = ruleFingerprint(dims);
+            const at = new Date().toLocaleString("zh-CN");
+            setLocked(true);
+            setLocAt(at);
+            setFP(fp);
+            onLock(dims, fp, at, selectedJob);
+          }}
+          className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10M17 9a5 5 0 00-10 0"/></svg>
+          锁定规则并发布
+        </button>
+      )}
+
+      {locked && (
+        <div className="bg-gray-900 text-white rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10M17 9a5 5 0 00-10 0"/></svg>
+            规则已锁定 · 不可修改
+          </div>
+          <p className="text-xs text-gray-400">锁定时间：{lockedAt}</p>
+          {/* 规则指纹 */}
+          <div className="bg-white/10 rounded-lg px-3 py-2 space-y-1">
+            <p className="text-xs text-gray-300">规则指纹（Rule Hash）</p>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-sm text-emerald-300 tracking-widest">{fingerprint}</span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(fingerprint); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                className="text-xs text-gray-400 hover:text-white transition-colors">
+                {copied ? "已复制 ✓" : "复制"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">规则内容改变时指纹随之改变，候选人可独立验证</p>
+          </div>
+          {/* 公示说明 */}
+          <div className="space-y-1.5">
+            <button onClick={openPublicPage} className="flex items-center gap-2 text-xs text-blue-300 hover:text-blue-200 transition-colors w-full text-left">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              查看规则公示页（新标签页打开）↗
+            </button>
+            <div className="flex items-center gap-2 text-xs text-gray-300">
+              <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              所有投递候选人将收到规则快照邮件，含本指纹
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => {
+              setLocked(false); setFP(""); setLocAt(""); setEx(false);
+              setSelectedJob(null); setShowJd(false); setDims(DIMS_DEFAULT);
+              onReset();
+            }}
+              className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors">
+              重新设置规则
+            </button>
+            <button onClick={onGoToScreen}
+              className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+              前往筛选工作台
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page 2: Screening Dashboard ─────────────────────────────────────────────
+
+function ScreeningDashboard({ dims, selectedJob, pool, addToPool, overrides, setOverrides }) {
+  const activeDims = dims || DIMS_DEFAULT;
+  const jobCandidates = selectedJob ? CANDIDATES.filter(c => c.job === selectedJob) : CANDIDATES;
+  const [selected, setSelected]       = useState([]);
+  const [results, setResults]         = useState(null);
+  const [loading, setLoading]         = useState(false);
+  const [expanded, setExpanded]       = useState(null);
+  const [notes, setNotes]             = useState({});
+  const [resumeCandidate, setResume]  = useState(null);
+
+  function run() {
+    setLoading(true); setResults(null);
+    setTimeout(() => { setResults(jobCandidates.filter(c => selected.includes(c.id))); setLoading(false); }, 1400);
+  }
+
+  function overrideColor(r) {
+    return r === "强推进面试" ? "green" : r === "不推进" ? "red" : "yellow";
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-5 fade-in">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">筛选工作台</h2>
+        <p className="text-sm text-gray-500 mt-1">选择简历，AI 按锁定规则逐条评分并给出理由</p>
+      </div>
+
+      {/* Selector */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-sm font-medium text-gray-700">选择待筛简历</span>
+            {selectedJob && <span className="ml-2 text-xs text-gray-400">{JOB_PRESETS[selectedJob]?.label}</span>}
+          </div>
+          <button onClick={() => setSelected(selected.length === jobCandidates.length ? [] : jobCandidates.map(c => c.id))}
+            className="text-xs text-blue-600 hover:underline">
+            {selected.length === jobCandidates.length ? "取消全选" : "全选"}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {jobCandidates.map(c => (
+            <label key={c.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected.includes(c.id) ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:bg-gray-50"}`}>
+              <input type="checkbox" checked={selected.includes(c.id)}
+                onChange={() => setSelected(s => s.includes(c.id) ? s.filter(x => x !== c.id) : [...s, c.id])}
+                className="accent-blue-500" />
+              <div>
+                <div className="text-sm font-medium text-gray-800">{c.name}</div>
+                <div className="text-xs text-gray-500">{c.school} · {c.tag}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+        <button disabled={selected.length === 0 || loading} onClick={run}
+          className="mt-1 px-5 py-2.5 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors flex items-center gap-2">
+          {loading
+            ? <><svg className="w-4 h-4 spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>AI 评分中…</>
+            : "开始筛选"}
+        </button>
+      </div>
+
+      <ResumeModal candidate={resumeCandidate} onClose={() => setResume(null)} />
+
+      {/* Summary bar */}
+      {results && (() => {
+        const total = results.length;
+        const strong = results.filter(c => (overrides[c.id] || c.result) === "强推进面试").length;
+        const pending = results.filter(c => (overrides[c.id] || c.result) === "待定").length;
+        const reject = results.filter(c => (overrides[c.id] || c.result) === "不推进").length;
+        const autoRate = Math.round(((strong + reject) / total) * 100);
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-6 flex-wrap fade-in">
+            <span className="text-xs font-medium text-gray-500">本次筛选汇总</span>
+            <span className="text-sm font-bold text-emerald-600">{strong} 强推进</span>
+            <span className="text-sm font-bold text-amber-500">{pending} 待定</span>
+            <span className="text-sm font-bold text-red-500">{reject} 不推进</span>
+            <span className="ml-auto text-xs text-gray-400">AI 自动处理率 <span className="font-semibold text-gray-700">{autoRate}%</span></span>
+          </div>
+        );
+      })()}
+
+      {/* Results */}
+      {results && results.map(c => {
+        const finalResult = overrides[c.id] || c.result;
+        const finalColor  = overrides[c.id] ? overrideColor(overrides[c.id]) : c.color;
+        const s = STYLE[finalColor];
+        const score = weighted(c.scores, activeDims);
+        const open = expanded === c.id;
+
+        return (
+          <div key={c.id} className={`rounded-xl border ${s.border} ${s.bg} overflow-hidden fade-in`}>
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-gray-900">{c.name}</span>
+                    <span className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{c.school}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${TAG_STYLE[c.tag]}`}>{c.tag}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">{c.summary}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${s.badge}`}>{finalResult}</span>
+                  <div className="text-2xl font-bold text-gray-800 mt-1">{score}<span className="text-sm font-normal text-gray-400"> 分</span></div>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-1.5">
+                {activeDims.map(d => (
+                  <div key={d.id} className="grid items-center gap-2" style={{gridTemplateColumns: "8rem 1fr"}}>
+                    <span className="text-xs text-gray-500 truncate">{d.label}（{d.weight}%）</span>
+                    <Bar value={c.scores[d.id]} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center gap-4 flex-wrap">
+                <button onClick={() => setExpanded(open ? null : c.id)}
+                  className="text-xs text-blue-600 hover:underline">
+                  {open ? "收起详细理由 ▲" : "展开详细理由 ▼"}
+                </button>
+                <button onClick={() => setResume(c)}
+                  className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  查看原始简历
+                </button>
+                {finalResult === "不推进" && addToPool && (
+                  pool && pool.find(p => p.id === c.id)
+                    ? <span className="text-xs text-amber-600 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                        已加入备选池
+                      </span>
+                    : <button onClick={() => addToPool(c)}
+                        className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors border border-amber-200 rounded px-2 py-0.5 hover:bg-amber-50">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                        加入备选池
+                      </button>
+                )}
+              </div>
+            </div>
+
+            {open && (
+              <div className="border-t border-dashed border-gray-200 bg-white/60 p-4 space-y-3 fade-in">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">AI 评分理由（按维度）</p>
+                {activeDims.map(d => (
+                  <div key={d.id} className="flex gap-3">
+                    <span className="text-xs font-semibold text-gray-700 w-20 shrink-0 pt-0.5">{d.label}</span>
+                    <p className="text-xs text-gray-600 leading-relaxed">{c.reasons[d.id]}</p>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-gray-100 space-y-2">
+                  <p className="text-xs font-medium text-gray-600">HR 覆盖 AI 建议</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {["强推进面试", "待定", "不推进"].map(r => (
+                      <button key={r} onClick={() => setOverrides(o => ({...o, [c.id]: r}))}
+                        className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${overrides[c.id] === r ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    className="w-full text-xs border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    placeholder="覆盖原因（必填，将留存记录）…"
+                    value={notes[c.id] || ""}
+                    onChange={e => setNotes(n => ({...n, [c.id]: e.target.value}))}
+                  />
+                  {overrides[c.id] && <p className="text-xs text-amber-600">⚠ HR 已覆盖 AI 建议，覆盖记录已留存。</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Page 3: Candidate View ───────────────────────────────────────────────────
+
+function CandidateView({ dims, fingerprint, openPublicPage, overrides = {} }) {
+  const activeDims = dims || DIMS_DEFAULT;
+  const [sel, setSel]           = useState("B");
+  const [appealOpen, setAO]     = useState(false);
+  const [appealText, setAT]     = useState("");
+  const [submitted, setSubmit]  = useState(false);
+
+  const c = CANDIDATES.find(x => x.id === sel);
+  // HR 覆盖优先，否则用 AI 原始结果
+  const finalResult = overrides[c.id] || c.result;
+  const overrideColorMap = { "强推进面试": "green", "待定": "yellow", "不推进": "red" };
+  const finalColor  = overrides[c.id] ? overrideColorMap[overrides[c.id]] : c.color;
+  const s = STYLE[finalColor];
+  // 用候选人自己岗位的维度展示评估结果，避免跨岗位维度 ID 对不上
+  const displayDims = JOB_PRESETS[c.job]?.dims || activeDims;
+
+  return (
+    <div className="max-w-lg mx-auto space-y-5 fade-in">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">候选人视图</h2>
+        <p className="text-sm text-gray-500 mt-1">候选人登录后看到的页面（模拟）</p>
+      </div>
+
+      {/* Switcher - grouped by job */}
+      <div className="space-y-2">
+        {[{job: "pm", label: "产品经理岗"}, {job: "dev", label: "后端开发岗"}].map(group => (
+          <div key={group.job}>
+            <p className="text-xs text-gray-400 mb-1.5">{group.label}</p>
+            <div className="flex gap-2 flex-wrap">
+              {CANDIDATES.filter(cd => cd.job === group.job).map(cd => (
+                <button key={cd.id} onClick={() => { setSel(cd.id); setAO(false); setSubmit(false); setAT(""); }}
+                  className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${sel === cd.id ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                  {cd.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className={`rounded-2xl border-2 ${s.border} overflow-hidden`}>
+        {/* Banner */}
+        <div className={`${s.bg} px-5 py-4 flex items-center justify-between`}>
+          <div>
+            <p className="text-xs text-gray-500 mb-0.5">腾讯 · {c.job === "dev" ? "后端开发实习生" : "产品经理实习生"} · 2026届秋招</p>
+            <h3 className="text-lg font-bold text-gray-900">您好，{c.name}</h3>
+          </div>
+          <div className="text-right">
+            <span className={`text-sm font-bold px-4 py-2 rounded-full ${s.badge}`}>{finalResult}</span>
+            {overrides[c.id] && <p className="text-xs text-amber-600 mt-1">HR 已调整</p>}
+          </div>
+        </div>
+
+        <div className="bg-white px-5 py-4 space-y-4">
+          {/* Dimension results */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">评估维度结果</p>
+            <div className="space-y-3">
+              {displayDims.map(d => {
+                const pass = c.scores[d.id] >= 65;
+                return (
+                  <div key={d.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                      <span className="text-sm font-medium text-gray-800">{d.label}</span>
+                      <span className="text-xs text-gray-400 ml-2">权重 {d.weight}%</span>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${pass ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                      {pass ? "符合要求" : "有待提升"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Rule fingerprint for candidate */}
+          <div className="border border-gray-100 rounded-lg px-3 py-2.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-600">本次评估适用规则版本</span>
+              <button onClick={openPublicPage}
+                className="text-xs text-blue-500 hover:underline">查看公示页 ↗</button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-gray-800 bg-gray-100 px-2 py-0.5 rounded tracking-widest">
+                {fingerprint || ruleFingerprint(activeDims)}
+              </span>
+              <span className="text-xs text-gray-400">投递时已发送至您的邮箱</span>
+            </div>
+            <p className="text-xs text-gray-400">如指纹与邮件中一致，说明规则在您投递后未被修改。</p>
+          </div>
+
+          {/* Note */}
+          <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-500 leading-relaxed">
+            ℹ 评估结果基于公开发布的岗位规则，各维度分数不对外显示。如对结果有异议，可在下方提交申诉。
+          </div>
+
+          {/* Appeal */}
+          {!submitted ? (
+            !appealOpen
+              ? <button onClick={() => setAO(true)} className="w-full py-2.5 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                  我对结果有异议，申请复核 →
+                </button>
+              : <div className="space-y-2 fade-in">
+                  <p className="text-xs font-medium text-gray-700">申诉说明</p>
+                  <p className="text-xs text-gray-400">请说明异议理由，申诉将在 5 个工作日内处理。</p>
+                  <textarea rows={3} value={appealText} onChange={e => setAT(e.target.value)}
+                    placeholder="请描述您认为评估不准确的具体原因…"
+                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <div className="flex gap-2">
+                    <button onClick={() => setAO(false)} className="flex-1 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50">取消</button>
+                    <button disabled={!appealText.trim()} onClick={() => setSubmit(true)}
+                      className="flex-1 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-40 hover:bg-blue-700">提交申诉</button>
+                  </div>
+                </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700 flex items-center gap-2 fade-in">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+              申诉已提交，预计 5 个工作日内处理完毕。
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Contrast callouts */}
+      {["A","B","D","E","F","G","I"].includes(sel) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 leading-relaxed space-y-1 fade-in">
+          <p className="font-semibold">💡 演示说明</p>
+          {sel === "A" && <p>王芳来自复旦（985），有主导项目和数据分析经验，强推进面试。说明系统对强 985 候选人同样公平。</p>}
+          {sel === "B" && <p>陈志远来自深圳大学（双非），凭项目主导经验得分与复旦王芳相当，同样强推进。核心对比：双非 ≠ 低能力。</p>}
+          {sel === "D" && <p>李思琪来自浙大（985），但无产品主导经历，按规则不推进。印证系统不因学历放行，985 也要凭实力。</p>}
+          {sel === "E" && <p>刘晓晨来自广东工业大学（双非），项目和技能均不达标，同样不推进。印证系统不因双非而降低标准。</p>}
+          {sel === "F" && <p>吴佳琪来自杭州电子科技大学（双非），有完整后端项目和开源贡献，技术与算法维度得分高，强推进。</p>}
+          {sel === "G" && <p>赵明远来自南京大学（985），四项维度均衡优秀，技术与项目经验充分，强推进面试。</p>}
+          {sel === "I" && <p>周晓敏来自西安交通大学（985），缺乏后端工程经验，算法竞赛背景与岗位不匹配，按规则不推进。</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page 4: Pool View ───────────────────────────────────────────────────────
+
+function PoolView({ pool, removeFromPool }) {
+  if (pool.length === 0) {
+    return (
+      <div className="max-w-lg mx-auto space-y-5 fade-in">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">简历备选池</h2>
+          <p className="text-sm text-gray-500 mt-1">跨岗位备选简历，供其他 HR 参考复用</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
+          备选池暂无简历。在筛选工作台对「不推进」候选人点击「加入备选池」即可加入。
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-lg mx-auto space-y-5 fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">简历备选池</h2>
+          <p className="text-sm text-gray-500 mt-1">跨岗位备选简历，供其他 HR 参考复用</p>
+        </div>
+        <span className="text-sm font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">{pool.length} 份</span>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 leading-relaxed">
+        💡 这些候选人虽未通过本岗位筛选，但可能匹配其他部门需求。各岗位 HR 可在此浏览并联系感兴趣的候选人。
+      </div>
+
+      <div className="space-y-3">
+        {pool.map(p => {
+          const candidate = CANDIDATES.find(c => c.id === p.id);
+          return (
+            <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between gap-4 fade-in">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-gray-900">{p.name}</span>
+                  <span className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{p.school}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${TAG_STYLE[p.tag]}`}>{p.tag}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{candidate?.summary}</p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400">来源岗位：</span>
+                  <span className="text-xs text-gray-600 font-medium">{p.fromJob}</span>
+                  <span className="text-xs text-red-400 ml-1">· 未通过</span>
+                </div>
+              </div>
+              <button onClick={() => removeFromPool(p.id)}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-0.5 px-2 py-1 rounded hover:bg-red-50">
+                移出
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── App Shell ────────────────────────────────────────────────────────────────
+
+const PAGES = [
+  { id: "rule",      label: "规则构建"   },
+  { id: "screen",    label: "筛选工作台" },
+  { id: "candidate", label: "候选人视图" },
+];
+
+function buildPublicPageHTML(dims, fp, lockedAt) {
+  const rows = dims.map(d => `
+    <tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#111">${d.label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#555;text-align:right">${d.weight}%</td>
+    </tr>`).join("");
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>筛选规则公示页 · 智筛 AI</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f7f8fa;min-height:100vh;padding:40px 16px}
+    .card{max-width:520px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden}
+    .header{background:#111;color:#fff;padding:24px 28px}
+    .header h1{font-size:18px;font-weight:700;margin-bottom:4px}
+    .header p{font-size:12px;color:#9ca3af}
+    .body{padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+    .fp-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+    .fp-label{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .fp-value{font-family:monospace;font-size:16px;color:#111;letter-spacing:.15em;font-weight:700}
+    .fp-note{font-size:11px;color:#9ca3af;margin-top:6px}
+    .section-label{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden}
+    th{background:#f9fafb;padding:10px 16px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;text-align:left;font-weight:600}
+    th:last-child{text-align:right}
+    .badge{display:inline-block;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;font-size:11px;padding:3px 10px;font-weight:600}
+    .readonly{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:12px;color:#92400e}
+    .meta{font-size:12px;color:#9ca3af}
+    .meta span{color:#374151;font-weight:500}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>筛选规则公示页</h1>
+      <p>某公司 · 产品经理实习生 · 2026届秋招 · 智筛 AI 提供技术支持</p>
+    </div>
+    <div class="body">
+      <div class="fp-box">
+        <div class="fp-label">规则指纹（Rule Hash）</div>
+        <div class="fp-value">${fp}</div>
+        <div class="fp-note">候选人可将此指纹与投递确认邮件中的指纹对比，一致则表示规则未被修改。</div>
+      </div>
+      <div>
+        <div class="section-label">评估维度与权重</div>
+        <table>
+          <thead><tr><th>维度</th><th>权重</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="meta">
+        锁定时间：<span>${lockedAt}</span><br/>
+        状态：<span class="badge">已锁定 · 不可修改</span>
+      </div>
+      <div class="readonly">
+        ⚠ 本页面为只读公示，规则自锁定后不可更改。如对评估结果有异议，请通过候选人系统提交申诉。
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function App() {
+  const [page, setPage]           = useState("rule");
+  const [lockedDims, setLocked]   = useState(null);
+  const [fingerprint, setFP]      = useState("");
+  const [lockedAt, setLockedAt]   = useState("");
+  const [selectedJob, setJob]     = useState(null);
+  const [pool, setPool]           = useState([]); // [{id, name, school, tag, fromJob}]
+  const [overrides, setOverrides] = useState({}); // {candidateId: "强推进面试"|"待定"|"不推进"}
+
+  function openPublicPage() {
+    if (!lockedDims) return;
+    const html = buildPublicPageHTML(lockedDims, fingerprint, lockedAt);
+    const blob = new Blob([html], { type: "text/html" });
+    const url  = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  }
+
+  function addToPool(candidate) {
+    if (pool.find(p => p.id === candidate.id)) return;
+    setPool(prev => [...prev, {
+      id: candidate.id, name: candidate.name,
+      school: candidate.school, tag: candidate.tag,
+      fromJob: selectedJob ? JOB_PRESETS[selectedJob].label : "未知岗位",
+    }]);
+  }
+
+  function removeFromPool(id) {
+    setPool(prev => prev.filter(p => p.id !== id));
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Nav */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-gray-900 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs font-bold">智</span>
+            </div>
+            <span className="font-bold text-gray-900 text-sm">智筛 AI</span>
+            <span className="text-xs text-gray-400 hidden sm:inline">· 可信简历筛选系统</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {lockedDims && (
+              <span className="text-xs bg-gray-900 text-white px-2.5 py-1 rounded-full flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10M17 9a5 5 0 00-10 0"/></svg>
+                {selectedJob ? JOB_PRESETS[selectedJob].label : "自定义岗位"} · 规则已锁定
+              </span>
+            )}
+            {pool.length > 0 && (
+              <button onClick={() => setPage("pool")}
+                className="text-xs bg-amber-500 text-white px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-amber-600 transition-colors">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
+                备选池 {pool.length}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto px-4 flex gap-0">
+          {PAGES.map(p => (
+            <button key={p.id} onClick={() => setPage(p.id)}
+              className={`px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${page === p.id ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        {page === "rule"      && <RuleBuilder onLock={(d, fp, at, job) => { setLocked(d); setFP(fp); setLockedAt(at); setJob(job); }} openPublicPage={openPublicPage} onGoToScreen={() => setPage("screen")} onReset={() => { setLocked(null); setFP(""); setLockedAt(""); setJob(null); setOverrides({}); }} />}
+        {page === "screen"    && <ScreeningDashboard dims={lockedDims} selectedJob={selectedJob} pool={pool} addToPool={addToPool} overrides={overrides} setOverrides={setOverrides} />}
+        {page === "candidate" && <CandidateView dims={lockedDims} fingerprint={fingerprint} openPublicPage={openPublicPage} overrides={overrides} />}
+        {page === "pool"      && <PoolView pool={pool} removeFromPool={removeFromPool} />}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

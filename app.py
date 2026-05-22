@@ -597,8 +597,8 @@ def render_screening():
   {"<br/>覆盖原因：" + ov_data.get("note","") if ov_data.get("note") else ""}
 </div>"""
 
-        # 主卡片 HTML
-        st.markdown(f"""
+        # 主卡片 HTML（用 st.html 避免 markdown 解析器干扰 flex 布局）
+        st.html(f"""
 <div style="background:{cm['bg']};border:1px solid {cm['border']};
             border-radius:12px;padding:16px;margin-bottom:0;">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
@@ -622,7 +622,7 @@ def render_screening():
   </div>
   <div style="margin-top:14px;">{_bars(r["scores"], dims)}</div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
         # 操作按钮行（紧贴卡片底部）
         b1, b2, b3, b4 = st.columns([2, 2, 2, 3])
@@ -659,14 +659,14 @@ def render_screening():
 </div>"""
                 for d in dims
             )
-            st.markdown(f"""
+            st.html(f"""
 <div style="background:rgba(255,255,255,.7);border:1px dashed #e5e7eb;
             border-radius:0 0 10px 10px;padding:16px;margin-top:-2px;">
   <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
              letter-spacing:.06em;margin-bottom:4px;">AI 评分理由（按维度）</p>
   {reasons_html}
 </div>
-""", unsafe_allow_html=True)
+""")
 
             # HR 覆盖区
             with st.container(border=True):
@@ -783,7 +783,7 @@ def render_candidate_view():
 
     ov_html = f'<p style="font-size:12px;color:#d97706;margin:4px 0 0;">HR 已调整</p>' if is_ov else ""
 
-    st.markdown(f"""
+    st.html(f"""
 <div style="border:2px solid {cm['border']};border-radius:16px;overflow:hidden;">
   <!-- Banner -->
   <div style="background:{cm['bg']};padding:20px 24px;
@@ -830,7 +830,7 @@ def render_candidate_view():
     </div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
     # 公示页按钮
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
@@ -887,11 +887,11 @@ def render_candidate_view():
     }
     if sel in NOTES:
         st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
-        st.markdown(f"""
+        st.html(f"""
 <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;
             padding:14px 16px;font-size:13px;color:#1e40af;line-height:1.6;">
   💡 <strong>演示说明</strong> — {NOTES[sel]}
-</div>""", unsafe_allow_html=True)
+</div>""")
 
 
 # ─── Page 4：简历备选池 ───────────────────────────────────────────────────────
@@ -927,7 +927,7 @@ def render_pool_view():
             continue
         jl    = entry["from_job_label"]
 
-        st.markdown(f"""
+        st.html(f"""
 <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
             padding:16px;margin-bottom:8px;">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
@@ -945,7 +945,7 @@ def render_pool_view():
       </div>
     </div>
   </div>
-</div>""", unsafe_allow_html=True)
+</div>""")
 
         if st.button("移出备选池", key=f"rm_{cid}"):
             remove_from_pool_db(cid)

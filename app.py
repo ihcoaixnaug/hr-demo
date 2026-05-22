@@ -503,7 +503,16 @@ def render_screening():
             all_ids = [c["id"] for c in job_c]
             cur_sel = st.session_state.selected_cands
             if st.button("全选" if set(cur_sel) != set(all_ids) else "取消全选", key="tog_all"):
-                st.session_state.selected_cands = [] if set(cur_sel) == set(all_ids) else all_ids[:]
+                if set(cur_sel) == set(all_ids):
+                    # 取消全选
+                    st.session_state.selected_cands = []
+                    for cid in all_ids:
+                        st.session_state[f"chk_{cid}"] = False
+                else:
+                    # 全选：同步更新各 checkbox 的 widget state
+                    st.session_state.selected_cands = all_ids[:]
+                    for cid in all_ids:
+                        st.session_state[f"chk_{cid}"] = True
                 st.rerun()
 
         cols2 = st.columns(2)

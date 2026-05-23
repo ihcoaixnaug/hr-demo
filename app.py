@@ -504,6 +504,7 @@ def render_rule_builder():
 </div>
 """, unsafe_allow_html=True)
 
+            st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
             _ca, _cb, _cc = st.columns([4, 4, 2])
             with _ca:
                 with st.expander(f"📋 查看{jl_l} JD"):
@@ -520,7 +521,7 @@ def render_rule_builder():
                     st.session_state.selected_job  = None
                     st.session_state.editing_dims  = None
                     st.rerun()
-            st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
 
         if st.session_state.public_html:
             with st.expander("规则公示页预览", expanded=True):

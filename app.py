@@ -1041,24 +1041,37 @@ def render_candidate_view():
                padding:3px 12px;font-size:12px;font-weight:600;">{tag_}</span>
 </div>"""
 
-    ov_html = f'<p style="font-size:12px;color:#d97706;margin:4px 0 0;">HR 已调整</p>' if is_ov else ""
+    # 结果大图标 + 文字配置
+    _result_cfg = {
+        "强推进面试": ("✅", "#166534", "#f0fdf4", "#dcfce7", "#16a34a"),
+        "待定":      ("⏳", "#92400e", "#fffbeb", "#fef3c7", "#d97706"),
+        "不推进":    ("❌", "#991b1b", "#fef2f2", "#fee2e2", "#dc2626"),
+    }
+    r_icon, r_text_c, r_bg, r_border_c, r_accent = _result_cfg.get(
+        final, ("❓", "#374151", "#f9fafb", "#e5e7eb", "#6b7280")
+    )
+    ov_note_cv = (
+        f'<div style="margin-top:8px;font-size:12px;color:#d97706;font-weight:500;">'
+        f'ⓘ 经 HR 复核调整</div>'
+    ) if is_ov else ""
 
     st.html(f"""
-<div style="border:1.5px solid {cm['border']};border-radius:18px;overflow:hidden;
-            box-shadow:0 4px 20px rgba(0,0,0,.08);">
-  <!-- Banner -->
-  <div style="background:{cm['bg']};padding:22px 26px;
-              display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-    <div>
-      <p style="font-size:12px;color:#6b7280;margin:0 0 5px;font-weight:500;">
-        腾讯 · {jl} · 2026届秋招</p>
-      <h3 style="font-size:22px;font-weight:800;color:#111827;margin:0;letter-spacing:-.02em;">
-        您好，{cand["name"]}</h3>
+<div style="border:2px solid {r_border_c};border-radius:20px;overflow:hidden;
+            box-shadow:0 6px 24px rgba(0,0,0,.10);">
+  <!-- Banner：结果为视觉主角 -->
+  <div style="background:{r_bg};padding:28px 28px 24px;text-align:center;
+              border-bottom:1px solid {r_border_c};">
+    <p style="font-size:12px;color:#6b7280;margin:0 0 14px;font-weight:500;letter-spacing:.02em;">
+      腾讯 · {jl} · 2026届秋招</p>
+    <!-- 结果大字 -->
+    <div style="font-size:36px;font-weight:900;color:{r_text_c};
+                letter-spacing:-.01em;line-height:1.1;margin-bottom:10px;">
+      {r_icon}&nbsp;{final}
     </div>
-    <div style="text-align:right;flex-shrink:0;">
-      {_badge(final)}
-      {ov_html}
-    </div>
+    <h3 style="font-size:16px;font-weight:600;color:#374151;margin:0;">
+      您好，{cand["name"]}
+    </h3>
+    {ov_note_cv}
   </div>
 
   <!-- Body -->

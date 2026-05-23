@@ -237,6 +237,9 @@ hr{border:none!important;border-top:1px solid #f0f0f0!important;margin:8px 0!imp
 .stCaption,.stCaption p{
   font-size:12px!important;color:#9ca3af!important;line-height:1.5!important;
 }
+
+/* ══ 隐藏 textarea 的 ⌘+Enter 提示 ══════════════════════════════════════ */
+[data-testid="InputInstructions"]{display:none!important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1610,7 +1613,9 @@ def render_candidate_view():
             return None
 
         ap_evidence: dict[str, str] = {}
-        ap_errors:   dict[str, str] = {}
+        # 上次提交失败的错误（仅在点击提交后才显示）
+        submit_errors: dict[str, str] = st.session_state.get(f"ap_errs_{sel}", {})
+
         for label in selected_labels:
             dim_id = dim_label_to_id[label]
             ev = st.text_area(
@@ -1619,47 +1624,57 @@ def render_candidate_view():
                 placeholder=(
                     "请提供可核实的具体证据，例如：\n"
                     "· 项目名称 + 你负责的具体模块 + 量化结果\n"
-                    "· GitHub/作品集链接\n"
+                    "· GitHub / 作品集链接\n"
                     "· 相关比赛奖项或证书名称\n"
-                    "（「我觉得不公平」等主观表述将被系统自动拦截）"
+                    "（至少 30 字；「我觉得不公平」等主观表述将被拦截）"
                 ),
                 height=100,
             )
             ap_evidence[dim_id] = ev
-            err = _check_evidence(ev) if ev.strip() else None
-            if err:
-                ap_errors[dim_id] = err
+            # 只显示上次提交失败留下的错误
+            if dim_id in submit_errors:
                 st.html(f"""
 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
-            padding:8px 12px;font-size:12px;color:#991b1b;margin-top:-6px;margin-bottom:4px;">
-  🚫 <strong>无法提交：</strong>{err}
+            padding:7px 12px;font-size:12px;color:#991b1b;margin-top:-4px;margin-bottom:4px;">
+  🚫 {submit_errors[dim_id]}
 </div>""")
 
         can_submit = (
             len(selected_labels) > 0
             and all(v.strip() for v in ap_evidence.values())
-            and not ap_errors
         )
 
         ca, sb = st.columns(2)
         with ca:
             if st.button("取消", key=f"ap_cancel_{sel}", use_container_width=True):
                 st.session_state[ao_key] = False
+                st.session_state.pop(f"ap_errs_{sel}", None)
                 st.rerun()
         with sb:
             if st.button("提交申诉", type="primary", disabled=not can_submit,
                          key=f"ap_sub_{sel}", use_container_width=True):
-                ap_text = "\n".join(
-                    f"[{lbl}] {ap_evidence[dim_label_to_id[lbl]]}"
+                # 提交时统一校验
+                errors = {
+                    dim_label_to_id[lbl]: _check_evidence(ap_evidence[dim_label_to_id[lbl]])
                     for lbl in selected_labels
-                )
-                save_appeal(sel, cand["name"], ap_text)
-                st.session_state.appeal_submitted.add(sel)
-                st.session_state[f"ap_revealed_{sel}"] = [
-                    dim_label_to_id[l] for l in selected_labels
-                ]
-                st.session_state[ao_key] = False
-                st.rerun()
+                    if _check_evidence(ap_evidence[dim_label_to_id[lbl]])
+                }
+                if errors:
+                    st.session_state[f"ap_errs_{sel}"] = errors
+                    st.rerun()
+                else:
+                    st.session_state.pop(f"ap_errs_{sel}", None)
+                    ap_text = "\n".join(
+                        f"[{lbl}] {ap_evidence[dim_label_to_id[lbl]]}"
+                        for lbl in selected_labels
+                    )
+                    save_appeal(sel, cand["name"], ap_text)
+                    st.session_state.appeal_submitted.add(sel)
+                    st.session_state[f"ap_revealed_{sel}"] = [
+                        dim_label_to_id[l] for l in selected_labels
+                    ]
+                    st.session_state[ao_key] = False
+                    st.rerun()
 
     else:
         # ── 入口按钮 ──────────────────────────────────────────────────────
@@ -1959,8 +1974,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",
     _appeal_tab_label,
     "👤 候选人视图",
-    "📦 简历备选池",
     "🔍 规则验证",
+    "📦 简历备选池",
 ])
 
 with tab1:
@@ -1970,9 +1985,9 @@ with tab2:
 with tab3:
     render_candidate_view()
 with tab4:
-    render_pool_view()
-with tab5:
     render_verification()
+with tab5:
+    render_pool_view()
 
 # ── 悬浮置顶按钮 ────────────────────────────────────────────────────────────────
 # 原理：通过 window.frameElement 拿到 iframe 自身在父文档中的 DOM 节点，

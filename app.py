@@ -2125,10 +2125,11 @@ _pending_appeals = len([a for a in get_all_appeals()
                         if a.get("status", "pending") == "pending"])
 _appeal_tab_label = f"📊 筛选工作台{'  ' + str(_pending_appeals) if _pending_appeals else ''}"
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",
     _appeal_tab_label,
     "👤 候选人视图",
+    "🔍 规则验证",
     "📦 简历备选池",
 ])
 
@@ -2139,6 +2140,8 @@ with tab2:
 with tab3:
     render_candidate_view()
 with tab4:
+    render_verification()
+with tab5:
     render_pool_view()
 
 # ── 申诉输入框实时字数计数器（JS注入父文档）─────────────────────────────────────

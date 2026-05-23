@@ -1,3 +1,6 @@
+# 演示讲稿 — 个人内容，不公开
+SCRIPT.md
+
 # Streamlit secrets — 含 API Key，绝对不上传
 .streamlit/secrets.toml
 

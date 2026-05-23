@@ -1749,56 +1749,67 @@ with tab5:
     render_verification()
 
 # ── 悬浮置顶按钮 ────────────────────────────────────────────────────────────────
-# 优先尝试注入父 frame（Streamlit Cloud 同源时有效）；
-# 若受 CSP 阻拦则在组件 iframe 内用 position:fixed 兜底（需 height>0）。
+# 原理：通过 window.frameElement 拿到 iframe 自身在父文档中的 DOM 节点，
+# 然后把 Streamlit 的 element-container 改为 position:fixed，
+# 使 iframe 脱离页面流、固定在屏幕右下角——从而按钮始终可见。
 st.components.v1.html("""
 <style>
-  /* 兜底：在 iframe 自身内固定显示（父 frame 注入失败时生效）*/
-  #fb { display:none; }
-  body { margin:0; background:transparent; }
+  html,body{margin:0;padding:0;background:transparent;overflow:hidden;}
 </style>
-<button id="fb" title="回到顶部"
-  style="position:fixed;bottom:16px;right:16px;width:44px;height:44px;
-         border-radius:50%;background:linear-gradient(135deg,#2563eb,#1e1b4b);
-         color:white;border:none;cursor:pointer;font-size:22px;font-weight:700;
-         box-shadow:0 4px 18px rgba(37,99,235,.45);z-index:9999;
-         display:flex;align-items:center;justify-content:center;">&#8679;</button>
+<button
+  onclick="try{window.parent.scrollTo({top:0,behavior:'smooth'})}catch(e){}"
+  onmouseenter="this.style.transform='scale(1.1)'"
+  onmouseleave="this.style.transform='scale(1)'"
+  title="回到顶部"
+  style="width:48px;height:48px;border-radius:50%;
+         background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%);
+         color:white;border:none;cursor:pointer;
+         font-size:24px;font-weight:700;line-height:1;
+         box-shadow:0 4px 20px rgba(37,99,235,.50),0 1px 4px rgba(0,0,0,.18);
+         display:flex;align-items:center;justify-content:center;
+         transition:transform .18s;
+         margin:4px;">&#8679;</button>
 <script>
-(function(){
-  var CSS = [
-    'position:fixed','bottom:36px','right:36px','width:44px','height:44px',
-    'border-radius:50%','background:linear-gradient(135deg,#2563eb,#1e1b4b)',
-    'color:white','border:none','cursor:pointer','font-size:22px','font-weight:700',
-    'box-shadow:0 4px 18px rgba(37,99,235,.45),0 1px 3px rgba(0,0,0,.18)',
-    'z-index:2147483647','display:flex','align-items:center','justify-content:center',
-    'transition:transform .18s',
-  ].join(';');
+(function fix(){
+  var me = window.frameElement;   // 我们自己的 <iframe> 元素
+  if (!me) return;
 
-  try {
-    /* ── 方案 A：注入父 frame（同源 Streamlit Cloud / 本地均有效）── */
-    var pdoc = window.parent.document;
-    if (!pdoc.getElementById('zhishai-top-btn')) {
-      var b = pdoc.createElement('button');
-      b.id        = 'zhishai-top-btn';
-      b.title     = '回到顶部';
-      b.innerHTML = '&#8679;';
-      b.style.cssText = CSS;
-      b.onmouseenter = function(){ b.style.transform='scale(1.12)'; };
-      b.onmouseleave = function(){ b.style.transform='scale(1)'; };
-      b.onclick = function(){ window.parent.scrollTo({top:0,behavior:'smooth'}); };
-      pdoc.body.appendChild(b);
-    }
-  } catch(e) {
-    /* ── 方案 B：父 frame 不可访问，改为显示 iframe 内的兜底按钮 ── */
-    var fb = document.getElementById('fb');
-    if (fb) {
-      fb.style.display = 'flex';
-      fb.onclick = function(){ window.parent.scrollTo({top:0,behavior:'smooth'}); };
-    }
+  /* 向上找 Streamlit 的 element-container（通常在 iframe 上 2 层）*/
+  var el = me;
+  for (var i = 0; i < 6; i++) {
+    el = el.parentElement;
+    if (!el) break;
+    if (el.classList && el.classList.contains('element-container')) break;
   }
+  var target = el || me.parentElement;
+
+  /* 把这个容器改为 position:fixed，钉在右下角 */
+  var props = {
+    position : 'fixed',
+    bottom   : '36px',
+    right    : '36px',
+    width    : '56px',
+    height   : '56px',
+    zIndex   : '2147483647',
+    margin   : '0',
+    padding  : '0',
+    overflow : 'visible',
+  };
+  for (var p in props) {
+    target.style.setProperty(
+      p.replace(/([A-Z])/g, '-$1').toLowerCase(),
+      props[p],
+      'important'
+    );
+  }
+  /* iframe 本身也缩成和容器一样大 */
+  me.style.setProperty('width',  '56px', 'important');
+  me.style.setProperty('height', '56px', 'important');
+  me.style.setProperty('border', 'none', 'important');
+  me.style.setProperty('background', 'transparent', 'important');
 })();
 </script>
-""", height=56)  # 给 iframe 足够高度让兜底按钮可见
+""", height=56)
 
 # ── Tab 跳转：rerun 后注入 JS 点击目标 Tab ───────────────────────────────────
 _goto = st.session_state.get("goto_tab", -1)

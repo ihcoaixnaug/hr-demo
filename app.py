@@ -859,9 +859,20 @@ def render_screening():
         if st.button("🚀 开始筛选", type="primary",
                      disabled=not st.session_state.selected_cands, key="run"):
             sel_c = [c for c in job_c if c["id"] in st.session_state.selected_cands]
-            bar   = st.progress(0, text="AI 评分中…")
+            _bar_slot = st.empty()
+            def _bar(text: str, pct: float):
+                filled = round(pct * 28)
+                dots = "●" * filled + "○" * (28 - filled)
+                _bar_slot.html(f"""
+<div style="background:#1A1714;border-radius:10px;padding:11px 18px;
+            display:flex;align-items:center;gap:12px;">
+  <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:11px;
+               color:#6B6560;letter-spacing:.04em;flex-shrink:0;">{dots}</span>
+  <span style="font-size:13px;font-weight:500;color:#FEFCF9;white-space:nowrap;">{text}</span>
+</div>""")
+            _bar("AI 评分中…", 0)
             for idx, cand in enumerate(sel_c):
-                bar.progress(idx / len(sel_c), text=f"正在评分：{cand['name']}（{idx+1}/{len(sel_c)}）")
+                _bar(f"正在评分：{cand['name']}（{idx+1}/{len(sel_c)}）", idx / len(sel_c))
                 llm_r = screen_candidate_with_llm(cand, dims, preset["jd"]) if has_api_key() else None
                 if llm_r:
                     scores, reasons, ai_r, src = llm_r["scores"], llm_r["reasons"], llm_r["ai_result"], "ai"
@@ -890,7 +901,7 @@ def render_screening():
                 }
                 save_screening_result(cand["id"], rule_id, scores, reasons, ai_r, src)
                 time.sleep(0.3)
-            bar.progress(1.0, text="✓ 评分完成")
+            _bar("✓ 评分完成", 1.0)
             time.sleep(0.5)
             st.rerun()
 

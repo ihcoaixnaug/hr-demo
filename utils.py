@@ -4,10 +4,14 @@ import json
 
 
 def rule_fingerprint(dims: list) -> str:
-    """FNV-1a 哈希，与 demo.html 中的 JS 实现完全一致。
+    """FNV-1a 哈希，基于 (label, weight) 对列表。
+    ⚠ 使用 label 而非 id：
+      - label 是人类可读的中文维度名，直接源自 JD 任职要求原文
+      - 候选人用同一 JD 重新提取维度后，可得到相同 label，从而独立验证 hash
+      - id 是 AI 内部命名（英文），随机性更高，不适合用于可信指纹
     规则内容改变一个字，指纹随之改变。"""
     payload = json.dumps(
-        [{"id": d["id"], "weight": d["weight"]} for d in dims],
+        [{"label": d["label"], "weight": d["weight"]} for d in dims],
         ensure_ascii=False,
         separators=(",", ":"),
     )

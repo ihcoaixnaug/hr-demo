@@ -1042,14 +1042,166 @@ def render_pool_view():
         st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
 
+# ─── Page 5：候选人规则验证 ──────────────────────────────────────────────────
+def render_verification():
+    st.html("""
+<div style="margin-bottom:16px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">候选人规则验证</h2>
+  <p style="font-size:14px;color:#6b7280;margin:0;">
+    粘贴收到的岗位 JD → AI 提取评估维度 → 调整至与 HR 一致的权重 → 生成指纹 → 与邮件对比
+  </p>
+</div>""")
+
+    # 原理说明
+    st.html("""
+<div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;
+            padding:16px 18px;font-size:13px;color:#1e40af;line-height:1.7;margin-bottom:16px;">
+  <strong>🔍 验证原理</strong><br/>
+  规则指纹（Hash）由「<strong>维度名称 + 权重</strong>」列表计算得出。
+  由于评估维度与 JD 任职要求<strong>一一对应</strong>，只要你手上有相同的 JD 原文，
+  用相同的 AI 提取后得到的维度名称应完全一致。<br/>
+  将权重调整为与 HR 公示的权重相同后，生成的指纹若与邮件中的一致，
+  即可证明规则<strong>自发布后未被修改</strong>。
+</div>""")
+
+    # Step 1：输入 JD
+    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">① 粘贴岗位 JD（需包含「任职要求」部分）</p>')
+    jd_input = st.text_area(
+        "JD 文本",
+        key="verify_jd",
+        height=200,
+        placeholder="将招聘 JD 全文粘贴至此，系统将自动识别「任职要求」部分……",
+        label_visibility="collapsed",
+    )
+
+    if not has_api_key():
+        st.html("""
+<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;
+            padding:10px 14px;font-size:12px;color:#92400e;margin-top:8px;">
+  ⚠ 当前未配置 API Key，无法调用 AI 提取。请配置后再使用此功能。
+</div>""")
+        return
+
+    if st.button("🤖 AI 提取评估维度", key="verify_extract",
+                 disabled=not jd_input.strip(), type="primary"):
+        with st.spinner("AI 正在从任职要求中提取评估维度…"):
+            dims = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
+        if dims:
+            st.session_state["verify_dims"] = dims
+            for d in dims:
+                st.session_state[f"vw_{d['id']}"] = d["weight"]
+            st.rerun()
+        else:
+            st.error("维度提取失败，请确认 JD 中包含「任职要求」部分，或检查 API 配置。")
+
+    verify_dims = st.session_state.get("verify_dims")
+    if not verify_dims:
+        return
+
+    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+
+    # Step 2：展示维度 & 调整权重
+    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">② 确认维度名称，并调整权重至与 HR 公示的一致</p>')
+
+    dim_rows_html = "".join(
+        f"""<div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:9px 0;border-bottom:1px solid #f3f4f6;">
+  <span style="font-size:13px;font-weight:500;color:#111827;">
+    {i+1}. {d['label']}
+  </span>
+  <span style="font-size:11px;color:#9ca3af;">（与 JD 第{i+1}条任职要求对应）</span>
+</div>"""
+        for i, d in enumerate(verify_dims)
+    )
+    st.html(f"""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
+            padding:12px 16px;margin-bottom:12px;
+            box-shadow:0 1px 3px rgba(0,0,0,.05);">
+  <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
+             letter-spacing:.06em;margin:0 0 4px;">AI 提取的维度名称（来自 JD 任职要求原文）</p>
+  {dim_rows_html}
+</div>""")
+
+    with st.container(border=True):
+        st.markdown('<span style="font-size:13px;font-weight:600;color:#374151;">权重设置</span>',
+                    unsafe_allow_html=True)
+        new_dims = []
+        total = 0
+        for d in verify_dims:
+            w = st.slider(
+                d["label"], min_value=5, max_value=60,
+                value=st.session_state.get(f"vw_{d['id']}", d["weight"]),
+                step=5, key=f"vw_{d['id']}", format="%d%%",
+            )
+            new_dims.append({**d, "weight": w})
+            total += w
+
+        if total == 100:
+            st.html('<span style="background:#dcfce7;color:#166534;border-radius:999px;'
+                    'padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 100%</span>')
+        else:
+            st.html(f'<span style="background:#fef3c7;color:#92400e;border-radius:999px;'
+                    f'padding:3px 12px;font-size:13px;font-weight:600;">⚠ 总计 {total}%，需调整至 100%</span>')
+
+    # Step 3：生成指纹
+    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">③ 生成规则指纹，与邮件中的指纹对比</p>')
+
+    if total == 100:
+        fp = rule_fingerprint(new_dims)
+        st.html(f"""
+<div style="background:#111827;border-radius:16px;padding:24px 28px;color:white;">
+  <p style="font-size:11px;color:#9ca3af;text-transform:uppercase;
+             letter-spacing:.06em;margin:0 0 10px;">生成的规则指纹</p>
+  <div style="font-family:monospace;font-size:36px;font-weight:900;
+              color:#6ee7b7;letter-spacing:.2em;margin-bottom:14px;">{fp}</div>
+  <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;
+              font-size:12px;color:#9ca3af;line-height:1.7;">
+    将此指纹与你收到的邮件中的指纹对比：<br/>
+    <span style="color:#6ee7b7;font-weight:600;">✓ 一致</span>
+    → 规则自发布后未被修改，评估过程可信<br/>
+    <span style="color:#f87171;font-weight:600;">✗ 不一致</span>
+    → 权重可能未调整到位，或维度名称存在差异（见下方排查提示）
+  </div>
+</div>""")
+
+        # 排查说明
+        st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
+        with st.expander("指纹不一致？查看排查步骤", expanded=False):
+            st.markdown("""
+**可能原因及排查方法：**
+
+1. **权重不一致** — 查看公司发布的规则公示页，确认每个维度的权重数值后重新设置
+2. **维度名称细微差异** — AI 每次提取时措辞可能略有不同。
+   对比上方提取到的维度名称与公示页中的维度名称，若有出入，以公示页为准
+3. **JD 版本不同** — 请使用投递时收到的原始 JD 文本，而非岗位招聘页的当前版本
+
+> 指纹算法：FNV-1a Hash，输入为「维度名称 + 权重」的 JSON 序列，与系统完全一致
+""")
+    else:
+        st.html("""
+<div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:16px;
+            padding:32px;text-align:center;color:#9ca3af;font-size:14px;">
+  将权重总计调整为 100% 后，指纹将在此显示
+</div>""")
+
+    # 重置
+    st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+    if st.button("🔄 重新输入 JD", key="verify_reset"):
+        st.session_state.pop("verify_dims", None)
+        st.session_state.pop("verify_jd", None)
+        st.rerun()
+
+
 # ─── 渲染入口 ─────────────────────────────────────────────────────────────────
 render_header()
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",
     "📊 筛选工作台",
     "👤 候选人视图",
     "📦 简历备选池",
+    "🔍 规则验证",
 ])
 
 with tab1:
@@ -1060,3 +1212,5 @@ with tab3:
     render_candidate_view()
 with tab4:
     render_pool_view()
+with tab5:
+    render_verification()

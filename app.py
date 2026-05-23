@@ -265,7 +265,6 @@ def _init():
         # ─ 其他 ──────────────────────────────────────────────────────────────
         "pool":              [],
         "appeal_submitted":  set(),
-        "public_html":       "",
         "hiring_target":     120,
         "goto_tab":          -1,
         "cv_selected":       "",
@@ -386,7 +385,17 @@ def _preset_mode_banner() -> str:
 </div>"""
 
 
-# ─── 简历弹窗（Dialog） ────────────────────────────────────────────────────────
+# ─── 弹窗（Dialogs） ──────────────────────────────────────────────────────────
+@st.dialog("📋 规则公示页", width="large")
+def _public_page_dialog(dims: list, fp: str, locked_at: str, job_label: str):
+    html = build_public_page_html(dims, fp, locked_at, job_label)
+    st.download_button(
+        "⬇ 下载公示页 HTML（可发送给候选人或挂载官网）",
+        data=html, file_name="rule_public_page.html", mime="text/html",
+    )
+    st.components.v1.html(html, height=480, scrolling=True)
+
+
 @st.dialog("📄 原始简历", width="small")
 def _resume_dialog(cand: dict):
     resume = cand["resume"]
@@ -505,16 +514,17 @@ def render_rule_builder():
 """, unsafe_allow_html=True)
 
             st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
-            _ca, _cb, _cc = st.columns([4, 4, 2], vertical_alignment="center")
+            _ca, _cb, _cc = st.columns([1, 1, 1], vertical_alignment="center")
             with _ca:
                 with st.expander(f"📋 查看{jl_l} JD"):
                     st.code(preset_l["jd"], language=None)
             with _cb:
-                if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}"):
-                    st.session_state.public_html = build_public_page_html(
-                        dims_l, fp_l, at_l, jl_l)
+                if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}",
+                             use_container_width=True):
+                    _public_page_dialog(dims_l, fp_l, at_l, jl_l)
             with _cc:
-                if st.button("🗑 清除规则", key=f"reset_job_{jk_l}"):
+                if st.button("🗑 清除规则", key=f"reset_job_{jk_l}",
+                             use_container_width=True):
                     del st.session_state.locked_jobs[jk_l]
                     if st.session_state.active_job == jk_l:
                         st.session_state.active_job = None
@@ -522,15 +532,6 @@ def render_rule_builder():
                     st.session_state.editing_dims  = None
                     st.rerun()
             st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
-
-        if st.session_state.public_html:
-            with st.expander("规则公示页预览", expanded=True):
-                st.download_button(
-                    "⬇ 下载公示页 HTML（可发送给候选人或挂载官网）",
-                    data=st.session_state.public_html,
-                    file_name="rule_public_page.html", mime="text/html",
-                )
-                st.components.v1.html(st.session_state.public_html, height=460, scrolling=True)
 
         if len(locked_jobs) >= len(JOB_PRESETS):
             st.html('<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;'
@@ -669,7 +670,6 @@ def render_rule_builder():
         st.session_state.active_job   = jk
         st.session_state.selected_job = None
         st.session_state.editing_dims = None
-        st.session_state.public_html  = ""
         st.rerun()
 
 
@@ -1495,15 +1495,9 @@ def render_candidate_view():
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
     if st.button("🔗 查看规则公示页", key=f"pub_cv_{sel}"):
         if display_fp:
-            st.session_state.public_html = build_public_page_html(
-                display_dims, display_fp, display_at, jl)
+            _public_page_dialog(display_dims, display_fp, display_at, jl)
         else:
             st.toast("请先在规则构建页锁定规则", icon="⚠️")
-    if st.session_state.public_html:
-        with st.expander("📄 规则公示页", expanded=False):
-            st.download_button("⬇ 下载公示页 HTML", data=st.session_state.public_html,
-                               file_name="rule_public_page.html", mime="text/html")
-            st.components.v1.html(st.session_state.public_html, height=440, scrolling=True)
 
     # ── 申诉系统 ─────────────────────────────────────────────────────────────
     st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)

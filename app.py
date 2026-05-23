@@ -42,11 +42,7 @@ html,body,[class*="css"]{
 /* ── 隐藏 Streamlit 默认 chrome ── */
 #MainMenu,footer,.stDeployButton{display:none!important;}
 [data-testid="stToolbar"]{display:none!important;}
-header[data-testid="stHeader"]{
-  background:white!important;
-  border-bottom:1px solid #e5e7eb!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.06)!important;
-}
+header[data-testid="stHeader"]{display:none!important;}
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"]{

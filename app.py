@@ -268,7 +268,7 @@ def _init():
         "public_html":       "",
         "hiring_target":     120,
         "goto_tab":          -1,
-        "cv_selected":       "B",
+        "cv_selected":       "",
     }
     for k, v in defs.items():
         if k not in st.session_state:
@@ -1309,48 +1309,65 @@ _CV_RESULT = {
 def render_candidate_view():
     locked_jobs = st.session_state.locked_jobs
     results     = st.session_state.screening_results
+    sel         = st.session_state.get("cv_selected", "")
+    cand        = CANDIDATES_MAP.get(sel) if sel else None
 
-    st.html(f"""
-{"" if has_api_key() else _preset_mode_banner()}
-<div style="margin-bottom:16px;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    # ══ 状态 1：登录页（未输入有效 ID）══════════════════════════════════════════
+    if not cand:
+        st.html(f"""
+<div style="margin-bottom:8px;">
+  <div style="display:flex;align-items:center;gap:10px;">
     <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">候选人视图</h2>
     {_role_badge("候选人视角")}
   </div>
-  <p style="font-size:14px;color:#6b7280;margin:0;">
-    候选人登录后看到的页面（模拟）·
-    维度结论可见，<span style="color:#ef4444;">分数不对外显示</span>
-  </p>
 </div>""")
-
-    # ── 候选人 ID 登录模拟 ────────────────────────────────────────────────────
-    st.html("""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
-            padding:14px 18px;margin-bottom:10px;
-            box-shadow:0 1px 4px rgba(0,0,0,.05);">
-  <p style="font-size:13px;font-weight:600;color:#374151;margin:0 0 8px;">
-    🔐 请输入您的应聘者编号查看结果
-  </p>
+        # 居中登录卡
+        _, _mid, _ = st.columns([1, 2, 1])
+        with _mid:
+            st.html("""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:20px;
+            padding:40px 32px 28px;text-align:center;margin-top:24px;
+            box-shadow:0 4px 20px rgba(0,0,0,.08);">
+  <div style="width:52px;height:52px;border-radius:16px;margin:0 auto 16px;
+              background:linear-gradient(135deg,#2563eb,#1e1b4b);
+              display:flex;align-items:center;justify-content:center;">
+    <span style="color:white;font-size:22px;">🎓</span>
+  </div>
+  <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:6px;">
+    腾讯 2026 届秋招
+  </div>
+  <div style="font-size:13px;color:#9ca3af;margin-bottom:24px;line-height:1.6;">
+    请输入您的应聘者编号<br/>查看本次简历筛选结果
+  </div>
 </div>""")
-    _id_input = st.text_input(
-        "应聘者编号",
-        value=st.session_state.get("cv_selected", "B"),
-        placeholder="输入编号，如 A、B … J",
-        key="cv_id_input",
-        label_visibility="collapsed",
-        max_chars=2,
-    )
-    if _id_input.strip().upper() in CANDIDATES_MAP:
-        _new_id = _id_input.strip().upper()
-        if _new_id != st.session_state.get("cv_selected"):
-            st.session_state.cv_selected = _new_id
-            st.session_state[f"ao_{_new_id}"] = False
-            st.rerun()
-
-    sel  = st.session_state.get("cv_selected", "B")
-    cand = CANDIDATES_MAP.get(sel)
-    if not cand:
+            _id_in = st.text_input(
+                "编号", placeholder="输入应聘编号，如 A / B / C",
+                key="cv_login_id", label_visibility="collapsed", max_chars=2,
+            )
+            if st.button("查看我的结果 →", type="primary", use_container_width=True,
+                         key="cv_login_btn"):
+                _clean = _id_in.strip().upper()
+                if _clean in CANDIDATES_MAP:
+                    st.session_state.cv_selected = _clean
+                    st.session_state[f"ao_{_clean}"] = False
+                    st.rerun()
+                else:
+                    st.error("未找到该编号，请确认后重试")
         return
+
+    # ══ 状态 2：结果页 ══════════════════════════════════════════════════════════
+    # 顶部：视角标签 + 返回按钮
+    _th, _tb = st.columns([6, 1])
+    with _th:
+        st.html(f"""
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">候选人视图</h2>
+  {_role_badge("候选人视角")}
+</div>""")
+    with _tb:
+        if st.button("← 重新查询", key="cv_back"):
+            st.session_state.cv_selected = ""
+            st.rerun()
 
     if sel in results:
         r = results[sel]; ai_r = r["ai_result"]
@@ -1363,7 +1380,7 @@ def render_candidate_view():
     cm           = COLOR_MAP[color]
 
     # 使用对应岗位已锁定的维度（保证与 HR 视图一致），否则回退预设
-    _cand_js   = locked_jobs.get(cand["job"])
+    _cand_js     = locked_jobs.get(cand["job"])
     display_dims = _cand_js["dims"]        if _cand_js else JOB_PRESETS[cand["job"]]["dims"]
     display_fp   = _cand_js["fingerprint"] if _cand_js else rule_fingerprint(display_dims)
     display_at   = _cand_js["locked_at"]   if _cand_js else ""

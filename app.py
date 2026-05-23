@@ -28,139 +28,215 @@ st.set_page_config(
 # ─── 全局 CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* ── 基础 ── */
+/* ══ 基础重置 ══════════════════════════════════════════════════════════════ */
 html,body,[class*="css"]{
-  font-family:-apple-system,"PingFang SC",BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-family:-apple-system,"PingFang SC","SF Pro Text",BlinkMacSystemFont,
+    "Segoe UI",sans-serif!important;
+  -webkit-font-smoothing:antialiased!important;
 }
-.stApp{background:#f3f4f6!important;}
+.stApp{background:#f0f2f5!important;}
 .stMainBlockContainer,.block-container{
-  max-width:880px!important;
+  max-width:900px!important;
   margin:0 auto!important;
-  padding:24px 24px 80px!important;
+  padding:20px 20px 100px!important;
 }
 
-/* ── 隐藏 Streamlit 默认 chrome ── */
+/* ══ 隐藏 Streamlit chrome ══════════════════════════════════════════════════ */
 #MainMenu,footer,.stDeployButton{display:none!important;}
 [data-testid="stToolbar"]{display:none!important;}
 header[data-testid="stHeader"]{display:none!important;}
 
-/* ── Tabs ── */
+/* ══ Tab 导航 ══════════════════════════════════════════════════════════════ */
 .stTabs [data-baseweb="tab-list"]{
   background:white!important;
   border:1px solid #e5e7eb!important;
-  border-radius:12px!important;
-  padding:4px!important;gap:2px!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
-  margin-bottom:8px!important;
+  border-radius:14px!important;
+  padding:5px!important;
+  gap:2px!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.07),0 0 0 0 transparent!important;
+  margin-bottom:6px!important;
 }
 .stTabs [data-baseweb="tab"]{
   background:transparent!important;
   color:#6b7280!important;
-  font-size:13px!important;font-weight:500!important;
-  padding:8px 16px!important;
-  border-radius:8px!important;margin:0!important;
-  transition:all .15s!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  padding:7px 14px!important;
+  border-radius:10px!important;
+  margin:0!important;
+  transition:all .18s ease!important;
+  white-space:nowrap!important;
 }
 .stTabs [aria-selected="true"]{
   color:#1d4ed8!important;
-  background:#eff6ff!important;
-  font-weight:600!important;
+  background:linear-gradient(135deg,#eff6ff,#e0eaff)!important;
+  font-weight:700!important;
+  box-shadow:0 1px 3px rgba(59,130,246,.18)!important;
 }
 .stTabs [data-baseweb="tab-highlight"]{display:none!important;}
 .stTabs [data-baseweb="tab-border"]{display:none!important;}
-.stTabs [data-baseweb="tab-panel"]{padding:16px 0 0!important;}
+.stTabs [data-baseweb="tab-panel"]{padding:14px 0 0!important;}
 
-/* ── 主按钮（深蓝渐变）── */
+/* ══ Primary 按钮 ══════════════════════════════════════════════════════════ */
 .stButton>button[kind="primary"]{
-  background:linear-gradient(135deg,#1d4ed8,#111827)!important;
+  background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%)!important;
   color:white!important;
-  border:none!important;border-radius:10px!important;
-  font-size:14px!important;font-weight:600!important;
-  padding:10px 22px!important;
-  box-shadow:0 2px 8px rgba(17,24,39,.25)!important;
-  transition:all .15s!important;
+  border:none!important;
+  border-radius:10px!important;
+  font-size:14px!important;
+  font-weight:600!important;
+  padding:10px 24px!important;
+  letter-spacing:.01em!important;
+  box-shadow:0 2px 10px rgba(37,99,235,.30),0 1px 2px rgba(0,0,0,.12)!important;
+  transition:all .18s ease!important;
+  white-space:nowrap!important;
 }
 .stButton>button[kind="primary"]:hover:not(:disabled){
-  background:linear-gradient(135deg,#1e40af,#374151)!important;
-  box-shadow:0 4px 12px rgba(17,24,39,.35)!important;
+  background:linear-gradient(135deg,#1d4ed8 0%,#312e81 100%)!important;
+  box-shadow:0 4px 16px rgba(37,99,235,.40),0 2px 4px rgba(0,0,0,.14)!important;
   transform:translateY(-1px)!important;
 }
+.stButton>button[kind="primary"]:active:not(:disabled){
+  transform:translateY(0)!important;
+  box-shadow:0 1px 4px rgba(37,99,235,.25)!important;
+}
 
-/* ── 次按钮 ── */
+/* ══ Secondary / 默认按钮 ══════════════════════════════════════════════════ */
 .stButton>button{
-  border-radius:8px!important;font-size:13px!important;
-  font-weight:500!important;padding:6px 14px!important;
-  border:1px solid #e5e7eb!important;
-  color:#374151!important;background:white!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.05)!important;
-  transition:all .12s!important;
+  border-radius:8px!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  padding:7px 14px!important;
+  border:1px solid #e2e8f0!important;
+  color:#374151!important;
+  background:white!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.06)!important;
+  transition:all .15s ease!important;
   white-space:nowrap!important;
+  overflow:visible!important;
 }
 .stButton>button:hover:not(:disabled){
   border-color:#93c5fd!important;
-  background:#f8faff!important;
+  background:#f5f8ff!important;
   color:#1d4ed8!important;
-  box-shadow:0 2px 6px rgba(59,130,246,.15)!important;
+  box-shadow:0 2px 8px rgba(59,130,246,.15)!important;
+  transform:translateY(-1px)!important;
 }
-.stButton>button:disabled{opacity:.35!important;}
+.stButton>button:active:not(:disabled){transform:translateY(0)!important;}
+.stButton>button:disabled{opacity:.38!important;cursor:not-allowed!important;}
 
-/* ── Slider ── */
-[data-testid="stSlider"] [role="slider"]{background:#3b82f6!important;}
+/* ══ Slider ══════════════════════════════════════════════════════════════ */
+[data-testid="stSlider"] [role="slider"]{
+  background:#2563eb!important;
+  box-shadow:0 0 0 3px rgba(37,99,235,.18)!important;
+}
 [data-testid="stSlider"] [data-testid="stSliderThumbValue"]{
   background:#1d4ed8!important;color:white!important;
   font-family:monospace!important;font-size:11px!important;
-  border-radius:4px!important;
+  border-radius:5px!important;
+  box-shadow:0 2px 6px rgba(29,78,216,.3)!important;
 }
-[data-testid="stSlider"] > div > div > div > div{background:#3b82f6!important;}
+[data-testid="stSlider"] > div > div > div > div{
+  background:linear-gradient(to right,#3b82f6,#2563eb)!important;
+  border-radius:999px!important;
+}
+[data-testid="stSlider"] label{font-size:13px!important;font-weight:500!important;color:#374151!important;}
 
-/* ── Input / Textarea ── */
+/* ══ Input / Textarea ══════════════════════════════════════════════════════ */
 .stTextInput input,.stTextArea textarea{
-  border-radius:8px!important;border:1px solid #e5e7eb!important;
-  font-size:13px!important;color:#374151!important;
+  border-radius:10px!important;
+  border:1.5px solid #e5e7eb!important;
+  font-size:13.5px!important;
+  color:#1f2937!important;
   background:white!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.04)!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.05)!important;
+  transition:border-color .15s,box-shadow .15s!important;
 }
 .stTextInput input:focus,.stTextArea textarea:focus{
-  border-color:#93c5fd!important;
-  box-shadow:0 0 0 3px rgba(59,130,246,.12)!important;
+  border-color:#60a5fa!important;
+  box-shadow:0 0 0 3px rgba(59,130,246,.14)!important;
   outline:none!important;
 }
-.stTextArea label,.stTextInput label{font-size:12px!important;color:#6b7280!important;}
+.stTextArea label,.stTextInput label{
+  font-size:12px!important;color:#6b7280!important;font-weight:500!important;
+}
 
-/* ── Checkbox ── */
-.stCheckbox label{font-size:14px!important;color:#374151!important;}
+/* ══ Checkbox ══════════════════════════════════════════════════════════════ */
+.stCheckbox label{font-size:13.5px!important;color:#374151!important;}
+.stCheckbox [data-testid="stCheckbox"]:hover label{color:#1d4ed8!important;}
 
-/* ── Metrics ── */
+/* ══ Metric 卡片 ══════════════════════════════════════════════════════════ */
 [data-testid="metric-container"]{
-  background:white!important;border:1px solid #e5e7eb!important;
-  border-radius:14px!important;padding:16px 20px!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
-}
-[data-testid="stMetricValue"]{font-size:24px!important;font-weight:800!important;color:#111827!important;}
-[data-testid="stMetricLabel"]{font-size:12px!important;color:#6b7280!important;font-weight:500!important;}
-
-/* ── Alerts ── */
-.stAlert{border-radius:10px!important;font-size:13px!important;}
-
-/* ── Expander ── */
-.stExpander{
-  border:1px solid #e5e7eb!important;border-radius:12px!important;
   background:white!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
-}
-.stExpander summary{font-size:13px!important;font-weight:600!important;color:#374151!important;}
-
-/* ── Container border ── */
-div[data-testid="stVerticalBlockBorderWrapper"]{
+  border:1px solid #e5e7eb!important;
   border-radius:14px!important;
+  padding:18px 20px!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.06),0 0 0 0 transparent!important;
+  transition:box-shadow .2s!important;
+}
+[data-testid="metric-container"]:hover{
+  box-shadow:0 4px 14px rgba(0,0,0,.10)!important;
+}
+[data-testid="stMetricValue"]{
+  font-size:26px!important;font-weight:800!important;
+  color:#111827!important;letter-spacing:-.02em!important;
+}
+[data-testid="stMetricLabel"]{
+  font-size:11.5px!important;color:#9ca3af!important;
+  font-weight:500!important;text-transform:uppercase!important;
+  letter-spacing:.04em!important;
+}
+
+/* ══ Alerts ══════════════════════════════════════════════════════════════ */
+.stAlert{border-radius:12px!important;font-size:13px!important;}
+
+/* ══ Expander ══════════════════════════════════════════════════════════════ */
+.stExpander{
+  border:1px solid #e5e7eb!important;
+  border-radius:14px!important;
+  background:white!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)!important;
+  overflow:hidden!important;
+}
+.stExpander summary{
+  font-size:13px!important;font-weight:600!important;color:#374151!important;
+  padding:12px 16px!important;
+}
+.stExpander summary:hover{background:#f9fafb!important;}
+
+/* ══ Border container ══════════════════════════════════════════════════════ */
+div[data-testid="stVerticalBlockBorderWrapper"]{
+  border-radius:16px!important;
   box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
   border:1px solid #e5e7eb!important;
   background:white!important;
 }
 
-/* ── 压缩间距 ── */
+/* ══ Progress bar ══════════════════════════════════════════════════════════ */
+[data-testid="stProgress"] > div > div{
+  background:linear-gradient(to right,#3b82f6,#2563eb)!important;
+  border-radius:999px!important;
+}
+
+/* ══ 全局间距 ══════════════════════════════════════════════════════════════ */
 .element-container{margin-bottom:4px!important;}
 div[data-testid="stVerticalBlock"]>div{gap:6px!important;}
+
+/* ══ 候选人卡片操作按钮行：确保文字不截断 ═══════════════════════════════════ */
+.cand-action-btn .stButton>button{
+  font-size:12.5px!important;
+  padding:6px 10px!important;
+  min-width:0!important;
+  width:100%!important;
+}
+
+/* ══ Divider ══════════════════════════════════════════════════════════════ */
+hr{border:none!important;border-top:1px solid #f0f0f0!important;margin:8px 0!important;}
+
+/* ══ Caption ══════════════════════════════════════════════════════════════ */
+.stCaption,.stCaption p{
+  font-size:12px!important;color:#9ca3af!important;line-height:1.5!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -238,20 +314,31 @@ def _bars(scores: dict, dims: list) -> str:
     rows = []
     for d in dims:
         v = scores.get(d["id"], 0)
-        c = "#10b981" if v >= 80 else "#3b82f6" if v >= 65 else "#ef4444"
+        if v >= 80:
+            bar_color = "linear-gradient(to right,#34d399,#10b981)"
+            num_color = "#059669"
+        elif v >= 65:
+            bar_color = "linear-gradient(to right,#60a5fa,#3b82f6)"
+            num_color = "#2563eb"
+        elif v >= 50:
+            bar_color = "linear-gradient(to right,#fbbf24,#f59e0b)"
+            num_color = "#d97706"
+        else:
+            bar_color = "linear-gradient(to right,#f87171,#ef4444)"
+            num_color = "#dc2626"
         rows.append(f"""
-<div style="display:grid;grid-template-columns:7.5rem 1fr;gap:8px;
-            align-items:center;margin-bottom:6px;">
-  <span style="font-size:12px;color:#6b7280;white-space:nowrap;">
-    {d["label"]}（{d["weight"]}%）
+<div style="display:grid;grid-template-columns:8rem 1fr 2.2rem;gap:8px;
+            align-items:center;margin-bottom:7px;">
+  <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;
+               text-overflow:ellipsis;">
+    {d["label"]}<span style="color:#d1d5db;font-size:11px;margin-left:3px;">{d["weight"]}%</span>
   </span>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div style="flex:1;background:#f3f4f6;border-radius:999px;height:6px;overflow:hidden;">
-      <div style="width:{v}%;height:6px;background:{c};border-radius:999px;"></div>
-    </div>
-    <span style="font-family:monospace;font-size:12px;color:#9ca3af;
-                 width:22px;text-align:right;">{v}</span>
+  <div style="background:#f1f5f9;border-radius:999px;height:7px;overflow:hidden;">
+    <div style="width:{v}%;height:7px;background:{bar_color};
+                border-radius:999px;transition:width .5s ease;"></div>
   </div>
+  <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:12px;
+               font-weight:700;color:{num_color};text-align:right;">{v}</span>
 </div>""")
     return "".join(rows)
 
@@ -286,24 +373,26 @@ def render_header():
         )
 
     st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:16px;
-            padding:14px 20px;margin-bottom:16px;
-            box-shadow:0 2px 8px rgba(0,0,0,.07);
-            display:flex;align-items:center;justify-content:space-between;">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <div style="width:36px;height:36px;
-                background:linear-gradient(135deg,#1d4ed8,#111827);
-                border-radius:10px;
+<div style="background:white;border:1px solid #e5e7eb;border-radius:18px;
+            padding:14px 22px;margin-bottom:14px;
+            box-shadow:0 2px 12px rgba(0,0,0,.08);
+            display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:40px;height:40px;flex-shrink:0;
+                background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%);
+                border-radius:12px;
                 display:flex;align-items:center;justify-content:center;
-                box-shadow:0 2px 6px rgba(17,24,39,.3);">
-      <span style="color:white;font-weight:900;font-size:15px;">智</span>
+                box-shadow:0 3px 10px rgba(37,99,235,.35);">
+      <span style="color:white;font-weight:900;font-size:17px;letter-spacing:-.5px;">智</span>
     </div>
-    <div>
-      <span style="font-weight:800;font-size:18px;color:#111827;">智筛 AI</span>
-      <span style="font-size:13px;color:#9ca3af;margin-left:8px;">· 可信简历筛选系统</span>
+    <div style="line-height:1.2;">
+      <div style="font-weight:800;font-size:18px;color:#111827;letter-spacing:-.02em;">智筛 AI</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:1px;">Trustworthy Resume Screening</div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;">{badges_html}</div>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+    {badges_html}
+  </div>
 </div>
 """)
 
@@ -346,36 +435,39 @@ def render_rule_builder():
                     st.markdown(f'<div style="font-family:monospace;font-size:14px;color:#6b7280;text-align:right;margin-top:18px;">{d["weight"]}%</div>', unsafe_allow_html=True)
 
         # 深色锁定卡
-        dim_rows = "".join(
-            f'<span style="background:rgba(255,255,255,.08);border-radius:6px;'
-            f'padding:2px 8px;font-size:12px;color:#d1d5db;margin-right:6px;">'
-            f'{d["label"]} {d["weight"]}%</span>'
+        dim_chips = "".join(
+            f'<span style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);'
+            f'border-radius:8px;padding:3px 10px;font-size:12px;color:#e5e7eb;'
+            f'font-weight:500;margin-right:6px;margin-bottom:6px;display:inline-block;">'
+            f'{d["label"]} <span style="color:#6ee7b7;font-weight:700;">{d["weight"]}%</span></span>'
             for d in dims
         )
         st.markdown(f"""
-<div style="background:#111827;border-radius:16px;padding:20px;color:white;margin-top:8px;">
-  <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:6px;">
-    <span>🔒</span> 规则已锁定 · 不可修改
+<div style="background:linear-gradient(160deg,#111827 0%,#1e1b4b 100%);
+            border-radius:18px;padding:22px 24px;color:white;margin-top:10px;
+            box-shadow:0 4px 20px rgba(17,24,39,.35);">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <span style="font-size:16px;">🔒</span>
+    <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">规则已锁定 · 不可修改</span>
   </div>
-  <p style="font-size:12px;color:#9ca3af;margin:0 0 14px;">锁定时间：{at}</p>
+  <p style="font-size:12px;color:#6b7280;margin:0 0 18px;">锁定时间：{at}</p>
 
-  <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-    <p style="font-size:11px;color:#9ca3af;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;">
-      规则指纹（Rule Hash）
-    </p>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:monospace;font-size:20px;color:#6ee7b7;
-                   font-weight:800;letter-spacing:.15em;">{fp}</span>
-    </div>
-    <p style="font-size:11px;color:#6b7280;margin:6px 0 0;">
-      规则内容改变时指纹随之改变，候选人可独立验证
+  <div style="background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);
+              border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+    <p style="font-size:11px;color:#6b7280;margin:0 0 8px;text-transform:uppercase;
+               letter-spacing:.06em;font-weight:600;">RULE HASH · 规则指纹</p>
+    <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:26px;
+                 color:#6ee7b7;font-weight:900;letter-spacing:.2em;">{fp}</span>
+    <p style="font-size:11.5px;color:#6b7280;margin:8px 0 0;line-height:1.5;">
+      规则内容改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
     </p>
   </div>
 
-  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#93c5fd;margin-bottom:6px;">
-    <span>🔗</span> 规则已同步公示页，所有投递候选人将收到规则快照邮件，含本指纹
+  <div style="font-size:12px;color:#93c5fd;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+    <span>🔗</span>
+    <span>规则已同步公示页，候选人收到的投递确认邮件含本指纹</span>
   </div>
-  <div style="margin-top:10px;">{dim_rows}</div>
+  <div style="display:flex;flex-wrap:wrap;">{dim_chips}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -634,14 +726,39 @@ def render_screening():
     rej = sum(1 for r in all_finals if r == "不推进")
     auto = round(((s_n + rej) / n) * 100) if n else 0
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("本次筛选", f"{n} 份")
-    c2.metric("强推进", s_n)
-    c3.metric("待定", p_n)
-    c4.metric("不推进", rej)
-    c5.metric("AI 自动处理率", f"{auto}%")
-
-    st.markdown("<br/>", unsafe_allow_html=True)
+    st.html(f"""
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
+  <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
+              padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:6px;">本次筛选</div>
+    <div style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-.03em;">{n}<span style="font-size:14px;font-weight:500;color:#9ca3af;"> 份</span></div>
+  </div>
+  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;
+              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(16,185,129,.08);">
+    <div style="font-size:11px;font-weight:600;color:#166534;text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:6px;">强推进</div>
+    <div style="font-size:28px;font-weight:800;color:#166534;letter-spacing:-.03em;">{s_n}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fde68a;
+              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(245,158,11,.08);">
+    <div style="font-size:11px;font-weight:600;color:#92400e;text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:6px;">待定</div>
+    <div style="font-size:28px;font-weight:800;color:#92400e;letter-spacing:-.03em;">{p_n}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fecaca;
+              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,.08);">
+    <div style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:6px;">不推进</div>
+    <div style="font-size:28px;font-weight:800;color:#991b1b;letter-spacing:-.03em;">{rej}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;
+              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(59,130,246,.08);">
+    <div style="font-size:11px;font-weight:600;color:#1e40af;text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:6px;">AI 自动处理</div>
+    <div style="font-size:28px;font-weight:800;color:#1e40af;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
+  </div>
+</div>""")
 
     # ── 候选人结果卡片 ────────────────────────────────────────────────────────
     pool_ids = [p["candidate_id"] for p in st.session_state.pool]
@@ -668,78 +785,91 @@ def render_screening():
   {"<br/>覆盖原因：" + ov_data.get("note","") if ov_data.get("note") else ""}
 </div>"""
 
-        # 主卡片 HTML（用 st.html 避免 markdown 解析器干扰 flex 布局）
+        # 主卡片 HTML
         st.html(f"""
-<div style="background:{cm['bg']};border:1px solid {cm['border']};
-            border-radius:12px;padding:16px;margin-bottom:0;">
+<div style="background:{cm['bg']};border:1.5px solid {cm['border']};
+            border-radius:16px;padding:18px 20px;margin-bottom:0;
+            box-shadow:0 2px 10px rgba(0,0,0,.05);">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
     <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-        <span style="font-size:15px;font-weight:700;color:#111827;">{cand["name"]}</span>
-        <span style="background:white;border:1px solid #e5e7eb;color:#374151;
-                     border-radius:999px;padding:2px 8px;font-size:12px;">{cand["school"]}</span>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+        <span style="font-size:15px;font-weight:700;color:#111827;letter-spacing:-.01em;">{cand["name"]}</span>
+        <span style="background:white;border:1px solid #e5e7eb;color:#4b5563;
+                     border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;">{cand["school"]}</span>
         {_degree_tag(cand.get("degree","本科"))}
         {_tag(cand["tag"])}
-        <span style="font-size:11px;color:#9ca3af;">{src_label}</span>
       </div>
-      <p style="font-size:13px;color:#6b7280;line-height:1.55;margin:0;">{cand["summary"]}</p>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0 0 4px;">{cand["summary"]}</p>
+      <span style="font-size:11px;color:#c4c9d4;font-style:italic;">{src_label}</span>
       {ov_note_html}
     </div>
-    <div style="text-align:right;flex-shrink:0;">
+    <div style="text-align:right;flex-shrink:0;padding-left:8px;">
       {_badge(final)}
-      <div style="font-size:30px;font-weight:900;color:#111827;margin-top:6px;line-height:1;">
-        {score}<span style="font-size:14px;font-weight:400;color:#9ca3af;"> 分</span>
+      <div style="font-size:34px;font-weight:900;color:#111827;margin-top:8px;
+                  line-height:1;letter-spacing:-.03em;">
+        {score}<span style="font-size:14px;font-weight:500;color:#9ca3af;letter-spacing:0;"> 分</span>
       </div>
     </div>
   </div>
-  <div style="margin-top:14px;">{_bars(r["scores"], dims)}</div>
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,0,0,.06);">
+    {_bars(r["scores"], dims)}
+  </div>
 </div>
 """)
 
-        # ── 操作行：内联小按钮，贴近原版 HTML 风格 ──────────────────────────────
+        # ── 操作行 ────────────────────────────────────────────────────────────
         exp_key = f"exp_{cid}"
         res_key = f"res_{cid}"
         is_expanded = st.session_state.get(exp_key, False)
-        pool_label = ""
-        if final == "不推进":
-            pool_label = "✓ 已在备选池" if cid in pool_ids else "＋ 加入备选池"
+        in_pool = cid in pool_ids
+        show_pool_btn = (final == "不推进")
 
-        btn_row_cols = st.columns([1, 1, 1, 4])
-        with btn_row_cols[0]:
-            exp_txt = "收起详细理由 ▲" if is_expanded else "展开详细理由 ▼"
-            if st.button(exp_txt, key=f"btn_exp_{cid}"):
+        # 列宽按实际内容分配，确保文字不被截断
+        if show_pool_btn:
+            btn_cols = st.columns([5, 4, 4, 3])
+        else:
+            btn_cols = st.columns([5, 4, 7])
+
+        with btn_cols[0]:
+            exp_txt = "▲ 收起理由" if is_expanded else "▼ 展开理由"
+            if st.button(exp_txt, key=f"btn_exp_{cid}", use_container_width=True):
                 st.session_state[exp_key] = not is_expanded
                 st.rerun()
-        with btn_row_cols[1]:
-            if st.button("查看原始简历", key=f"btn_res_{cid}"):
+        with btn_cols[1]:
+            if st.button("📄 原始简历", key=f"btn_res_{cid}", use_container_width=True):
                 st.session_state[res_key] = not st.session_state.get(res_key, False)
                 st.rerun()
-        with btn_row_cols[2]:
-            if pool_label == "＋ 加入备选池":
-                if st.button(pool_label, key=f"btn_pool_{cid}"):
-                    add_to_pool_db(cid, preset["label"])
-                    _sync_pool()
-                    st.rerun()
-            elif pool_label:
-                st.markdown(f'<span style="font-size:12px;color:#d97706;">✓ 已在备选池</span>', unsafe_allow_html=True)
+        if show_pool_btn:
+            with btn_cols[2]:
+                if not in_pool:
+                    if st.button("＋ 备选池", key=f"btn_pool_{cid}", use_container_width=True):
+                        add_to_pool_db(cid, preset["label"])
+                        _sync_pool()
+                        st.rerun()
+                else:
+                    st.markdown('<div style="padding:7px 0;font-size:12px;color:#d97706;font-weight:500;">✓ 已在备选池</div>', unsafe_allow_html=True)
 
-        # ── 展开：理由（原版白底 dashed 分隔）+ HR 覆盖（三按钮横排）──────────────
+        # ── 展开：理由 + HR 覆盖 ──────────────────────────────────────────────
         if is_expanded:
             reasons_html = "".join(
-                f"""<div style="display:flex;gap:12px;padding:8px 0;
-                              border-bottom:1px solid #f3f4f6;">
-  <span style="font-size:12px;font-weight:600;color:#374151;
-               width:72px;flex-shrink:0;padding-top:1px;">{d["label"]}</span>
-  <span style="font-size:12px;color:#4b5563;line-height:1.6;">
+                f"""<div style="display:flex;gap:14px;padding:10px 0;
+                              border-bottom:1px solid #f3f4f6;align-items:flex-start;">
+  <div style="flex-shrink:0;width:68px;padding-top:1px;">
+    <span style="font-size:11px;font-weight:700;color:#374151;
+                 background:#f8faff;border:1px solid #e0e7ff;border-radius:6px;
+                 padding:2px 7px;white-space:nowrap;">{d["label"]}</span>
+  </div>
+  <span style="font-size:12.5px;color:#4b5563;line-height:1.65;">
     {r["reasons"].get(d["id"],"")}</span>
 </div>"""
                 for d in dims
             )
             st.html(f"""
-<div style="background:rgba(255,255,255,.65);border:1px dashed #e5e7eb;
-            border-radius:0 0 10px 10px;padding:14px 16px;margin-top:-4px;">
-  <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-             letter-spacing:.06em;margin-bottom:6px;">AI 评分理由（按维度）</p>
+<div style="background:white;border:1px solid #e5e7eb;
+            border-radius:14px;padding:16px 18px;margin-top:6px;
+            box-shadow:0 1px 4px rgba(0,0,0,.05);">
+  <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;
+             letter-spacing:.07em;margin:0 0 4px;">AI 评分理由 · 逐维度</p>
   {reasons_html}
 </div>
 """)
@@ -814,7 +944,7 @@ def render_screening():
                     st.markdown(f"🏆 **奖项** {aw}")
 
         # 卡片间隔
-        st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
 
 
 # ─── Page 3：候选人视图 ───────────────────────────────────────────────────────
@@ -885,47 +1015,52 @@ def render_candidate_view():
     ov_html = f'<p style="font-size:12px;color:#d97706;margin:4px 0 0;">HR 已调整</p>' if is_ov else ""
 
     st.html(f"""
-<div style="border:2px solid {cm['border']};border-radius:16px;overflow:hidden;">
+<div style="border:1.5px solid {cm['border']};border-radius:18px;overflow:hidden;
+            box-shadow:0 4px 20px rgba(0,0,0,.08);">
   <!-- Banner -->
-  <div style="background:{cm['bg']};padding:20px 24px;
-              display:flex;align-items:flex-start;justify-content:space-between;">
+  <div style="background:{cm['bg']};padding:22px 26px;
+              display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
     <div>
-      <p style="font-size:12px;color:#6b7280;margin:0 0 4px;">腾讯 · {jl} · 2026届秋招</p>
-      <h3 style="font-size:20px;font-weight:800;color:#111827;margin:0;">您好，{cand["name"]}</h3>
+      <p style="font-size:12px;color:#6b7280;margin:0 0 5px;font-weight:500;">
+        腾讯 · {jl} · 2026届秋招</p>
+      <h3 style="font-size:22px;font-weight:800;color:#111827;margin:0;letter-spacing:-.02em;">
+        您好，{cand["name"]}</h3>
     </div>
-    <div style="text-align:right;">
+    <div style="text-align:right;flex-shrink:0;">
       {_badge(final)}
       {ov_html}
     </div>
   </div>
 
   <!-- Body -->
-  <div style="background:white;padding:20px 24px;">
+  <div style="background:white;padding:22px 26px;">
     <!-- 维度结果 -->
-    <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-               letter-spacing:.06em;margin-bottom:4px;">评估维度结果</p>
+    <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;
+               letter-spacing:.07em;margin:0 0 6px;">评估维度结果</p>
     {dim_rows}
 
     <!-- 规则指纹 -->
-    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-top:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">本次评估适用规则版本</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-family:monospace;background:#f3f4f6;border-radius:6px;
-                     padding:3px 10px;font-size:14px;font-weight:700;letter-spacing:.12em;">
+    <div style="background:#f8faff;border:1px solid #dbeafe;border-radius:12px;
+                padding:14px 18px;margin-top:18px;">
+      <p style="font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;
+                 letter-spacing:.06em;margin:0 0 8px;">本次评估适用规则版本</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-family:'SF Mono',ui-monospace,monospace;
+                     background:white;border:1px solid #bfdbfe;border-radius:8px;
+                     padding:5px 14px;font-size:16px;font-weight:800;
+                     letter-spacing:.15em;color:#1e40af;">
           {display_fp}
         </span>
-        <span style="font-size:12px;color:#9ca3af;">投递时已发送至您的邮箱</span>
+        <span style="font-size:12px;color:#6b7280;">投递时已发送至您的邮箱</span>
       </div>
-      <p style="font-size:12px;color:#9ca3af;margin:6px 0 0;">
-        如指纹与邮件中一致，说明规则在您投递后未被修改。
+      <p style="font-size:12px;color:#6b7280;margin:8px 0 0;line-height:1.5;">
+        与邮件指纹一致 → 规则自投递后<strong>未被修改</strong>，评估过程可信
       </p>
     </div>
 
     <!-- 说明 -->
-    <div style="background:#f9fafb;border-radius:8px;padding:12px 14px;margin-top:14px;
-                font-size:12px;color:#6b7280;line-height:1.6;">
+    <div style="background:#f9fafb;border-radius:10px;padding:12px 16px;margin-top:14px;
+                font-size:12.5px;color:#6b7280;line-height:1.65;border:1px solid #f0f0f0;">
       ℹ 评估结果基于公开发布的岗位规则，各维度分数不对外显示。
       如对结果有异议，可在下方提交申诉。
     </div>
@@ -990,11 +1125,14 @@ def render_candidate_view():
         "J": "郑凯文（无大学学历 · 高中 · 自学），4 年自学后端，GitHub 开源项目 1200+ stars，2 年全职工作经验，强推进。\n终极论点：系统只看岗位相关能力，无学历者凭实力击败清华博士。",
     }
     if sel in NOTES:
-        st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)
         st.html(f"""
-<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;
-            padding:14px 16px;font-size:13px;color:#1e40af;line-height:1.6;">
-  💡 <strong>演示说明</strong> — {NOTES[sel]}
+<div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
+            border:1px solid #bfdbfe;border-radius:14px;
+            padding:14px 18px;font-size:13px;color:#1e40af;line-height:1.65;">
+  <span style="font-size:14px;">💡</span>
+  <strong style="margin-left:4px;">演示说明</strong> —
+  {NOTES[sel]}
 </div>""")
 
 

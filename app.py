@@ -1449,19 +1449,71 @@ def render_candidate_view():
     ap_done = sel in st.session_state.appeal_submitted
 
     if ap_done:
-        # ── 已提交：受理确认 + 有条件查分 ──────────────────────────────────
+        # ── 已提交：查询真实处理状态 ──────────────────────────────────────
         revealed = st.session_state.get(f"ap_revealed_{sel}", [])
-        st.html("""
+
+        # 从数据库拿最新一条该候选人的申诉状态
+        _all_ap   = get_all_appeals()
+        _my_ap    = next((a for a in _all_ap if a["candidate_id"] == sel), None)
+        _ap_status = _my_ap["status"] if _my_ap else "pending"
+
+        if _ap_status == "pending":
+            st.html("""
 <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;
             padding:16px 20px;margin-bottom:12px;
             box-shadow:0 2px 8px rgba(16,185,129,.08);">
   <div style="font-size:14px;font-weight:700;color:#166534;margin-bottom:6px;">
-    ✅ 申诉已受理
+    ✅ 申诉已受理 · 处理中
   </div>
   <div style="font-size:13px;color:#15803d;line-height:1.65;">
     校招运营团队将在 <strong>5 个工作日</strong>内处理您的申诉。<br/>
     复核基准为您提交时所对应的 <strong>锁定规则版本（指纹不变）</strong>，
     如需补充材料，将通过投递邮箱联系您。
+  </div>
+</div>""")
+
+        elif _ap_status == "reviewed":
+            # HR 复核通过 → 检查是否有 HR 覆盖（结果是否实际变更）
+            _ov = st.session_state.overrides.get(sel, {})
+            _changed = bool(_ov.get("result")) and _ov["result"] != final
+            if _changed:
+                st.html(f"""
+<div style="background:#f0fdf4;border:1.5px solid #16a34a;border-radius:14px;
+            padding:18px 22px;margin-bottom:12px;
+            box-shadow:0 4px 16px rgba(16,185,129,.12);">
+  <div style="font-size:15px;font-weight:800;color:#166534;margin-bottom:8px;">
+    🎉 申诉复核完成 · 结论已调整
+  </div>
+  <div style="font-size:13px;color:#15803d;line-height:1.7;">
+    经校招团队人工复核，您的评估结论已由
+    <strong>「{_ov["result"]}」</strong> 更新。<br/>
+    如有后续安排，我们将通过您的投递邮箱与您联系。
+  </div>
+</div>""")
+            else:
+                st.html("""
+<div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:14px;
+            padding:16px 20px;margin-bottom:12px;">
+  <div style="font-size:14px;font-weight:700;color:#1e40af;margin-bottom:6px;">
+    📋 申诉复核完成 · 维持原结论
+  </div>
+  <div style="font-size:13px;color:#1d4ed8;line-height:1.65;">
+    校招团队已对您申诉的维度进行人工复核，基于现有材料，<strong>原评估结论不变</strong>。<br/>
+    如有新的可核实证据（项目链接、证书等），可通过投递邮箱补充后再次申请。
+  </div>
+</div>""")
+
+        elif _ap_status == "dismissed":
+            st.html("""
+<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;
+            padding:16px 20px;margin-bottom:12px;">
+  <div style="font-size:14px;font-weight:700;color:#991b1b;margin-bottom:6px;">
+    ❌ 申诉未通过受理
+  </div>
+  <div style="font-size:13px;color:#b91c1c;line-height:1.65;">
+    您提交的申诉材料未满足复核标准（缺乏可核实的具体证据），本次申诉不予受理。<br/>
+    如您有新的证明材料（项目链接、量化成果、证书等），
+    可通过投递邮箱重新提交，校招团队将再次评估。
   </div>
 </div>""")
 

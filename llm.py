@@ -16,7 +16,7 @@ import requests
 from utils import build_resume_text
 
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL   = "anthropic/claude-3.5-sonnet"
+DEFAULT_MODEL   = "anthropic/claude-3.5-haiku"   # claude-3.5-sonnet 已从 OR 下线
 
 
 # ─── 配置读取 ─────────────────────────────────────────────────────────────────
@@ -135,5 +135,7 @@ def screen_candidate_with_llm(candidate: dict, dims: list, jd: str) -> dict | No
         data["source"] = "ai"
         return data
 
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.warning(f"[智筛 LLM] 调用失败，回退预设数据: {e}")
         return None

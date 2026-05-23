@@ -624,73 +624,96 @@ def render_screening():
 </div>
 """)
 
-        # 操作按钮行（紧贴卡片底部）
-        b1, b2, b3, b4 = st.columns([2, 2, 2, 3])
+        # ── 操作行：内联小按钮，贴近原版 HTML 风格 ──────────────────────────────
         exp_key = f"exp_{cid}"
         res_key = f"res_{cid}"
-        with b1:
-            label = "▲ 收起" if st.session_state.get(exp_key) else "▼ 展开理由"
-            if st.button(label, key=f"btn_exp_{cid}"):
-                st.session_state[exp_key] = not st.session_state.get(exp_key, False)
+        is_expanded = st.session_state.get(exp_key, False)
+        pool_label = ""
+        if final == "不推进":
+            pool_label = "✓ 已在备选池" if cid in pool_ids else "＋ 加入备选池"
+
+        btn_row_cols = st.columns([1, 1, 1, 4])
+        with btn_row_cols[0]:
+            exp_txt = "收起详细理由 ▲" if is_expanded else "展开详细理由 ▼"
+            if st.button(exp_txt, key=f"btn_exp_{cid}"):
+                st.session_state[exp_key] = not is_expanded
                 st.rerun()
-        with b2:
-            if st.button("📄 查看简历", key=f"btn_res_{cid}"):
+        with btn_row_cols[1]:
+            if st.button("查看原始简历", key=f"btn_res_{cid}"):
                 st.session_state[res_key] = not st.session_state.get(res_key, False)
                 st.rerun()
-        with b3:
-            if final == "不推进":
-                if cid in pool_ids:
-                    st.markdown('<span style="font-size:13px;color:#d97706;line-height:2.2;">✓ 已在备选池</span>', unsafe_allow_html=True)
-                else:
-                    if st.button("➕ 加入备选池", key=f"btn_pool_{cid}"):
-                        add_to_pool_db(cid, preset["label"])
-                        _sync_pool()
-                        st.rerun()
+        with btn_row_cols[2]:
+            if pool_label == "＋ 加入备选池":
+                if st.button(pool_label, key=f"btn_pool_{cid}"):
+                    add_to_pool_db(cid, preset["label"])
+                    _sync_pool()
+                    st.rerun()
+            elif pool_label:
+                st.markdown(f'<span style="font-size:12px;color:#d97706;">✓ 已在备选池</span>', unsafe_allow_html=True)
 
-        # 展开：理由 + HR 覆盖
-        if st.session_state.get(exp_key):
+        # ── 展开：理由（原版白底 dashed 分隔）+ HR 覆盖（三按钮横排）──────────────
+        if is_expanded:
             reasons_html = "".join(
-                f"""<div style="display:flex;gap:12px;padding:10px 0;
-                              border-bottom:1px dashed #e5e7eb;">
-  <span style="font-size:13px;font-weight:600;color:#374151;
-               width:76px;flex-shrink:0;">{d["label"]}</span>
-  <span style="font-size:13px;color:#4b5563;line-height:1.55;">
+                f"""<div style="display:flex;gap:12px;padding:8px 0;
+                              border-bottom:1px solid #f3f4f6;">
+  <span style="font-size:12px;font-weight:600;color:#374151;
+               width:72px;flex-shrink:0;padding-top:1px;">{d["label"]}</span>
+  <span style="font-size:12px;color:#4b5563;line-height:1.6;">
     {r["reasons"].get(d["id"],"")}</span>
 </div>"""
                 for d in dims
             )
             st.html(f"""
-<div style="background:rgba(255,255,255,.7);border:1px dashed #e5e7eb;
-            border-radius:0 0 10px 10px;padding:16px;margin-top:-2px;">
+<div style="background:rgba(255,255,255,.65);border:1px dashed #e5e7eb;
+            border-radius:0 0 10px 10px;padding:14px 16px;margin-top:-4px;">
   <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-             letter-spacing:.06em;margin-bottom:4px;">AI 评分理由（按维度）</p>
+             letter-spacing:.06em;margin-bottom:6px;">AI 评分理由（按维度）</p>
   {reasons_html}
 </div>
 """)
-
-            # HR 覆盖区
-            with st.container(border=True):
-                st.markdown('<p style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;">HR 覆盖 AI 建议</p>', unsafe_allow_html=True)
-                st.caption("覆盖操作会写入审计日志，留存可查。")
-                opts = ["（不覆盖）", "强推进面试", "待定", "不推进"]
-                cur  = ov_data.get("result", "")
-                new_ov = st.selectbox("调整为", opts,
-                                      index=opts.index(cur) if cur in opts else 0,
-                                      key=f"ov_sel_{cid}", label_visibility="collapsed")
-                ov_note = st.text_input("覆盖原因（必填，将留存记录）",
-                                         value=ov_data.get("note",""),
-                                         key=f"ov_note_{cid}",
-                                         placeholder="请说明覆盖原因…")
-                if st.button("保存覆盖记录", key=f"ov_save_{cid}"):
-                    if new_ov == "（不覆盖）":
+            # HR 覆盖：三个小圆角按钮横排（对齐原版）
+            st.markdown('<p style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px;">HR 覆盖 AI 建议</p>', unsafe_allow_html=True)
+            st.caption("覆盖操作会写入审计日志，留存可查。")
+            cur_ov = ov_data.get("result", "")
+            ov_opts = ["强推进面试", "待定", "不推进"]
+            ov_cols = st.columns([1, 1, 1, 3])
+            new_ov = cur_ov
+            for i, opt in enumerate(ov_opts):
+                with ov_cols[i]:
+                    active = cur_ov == opt
+                    btn_style = "primary" if active else "secondary"
+                    if st.button(opt, key=f"ov_{opt}_{cid}", type=btn_style if active else "secondary"):
+                        new_ov = opt if opt != cur_ov else ""
+                        if new_ov:
+                            st.session_state[f"ov_pending_{cid}"] = new_ov
+                        else:
+                            st.session_state.pop(f"ov_pending_{cid}", None)
+            # 如果有待选，显示原因输入框
+            pending_ov = st.session_state.get(f"ov_pending_{cid}", cur_ov)
+            if pending_ov or cur_ov:
+                ov_note = st.text_input(
+                    "覆盖原因（必填，将留存记录）",
+                    value=ov_data.get("note", ""),
+                    key=f"ov_note_{cid}",
+                    placeholder="请说明覆盖原因…"
+                )
+                save_cols = st.columns([1, 4])
+                with save_cols[0]:
+                    if st.button("保存", key=f"ov_save_{cid}", type="primary"):
+                        effective_ov = pending_ov or cur_ov
+                        if not ov_note.strip():
+                            st.error("覆盖原因不能为空")
+                        else:
+                            st.session_state.overrides[cid] = {"result": effective_ov, "note": ov_note}
+                            save_hr_override(cid, rule_id, r["ai_result"], effective_ov, ov_note)
+                            st.session_state.pop(f"ov_pending_{cid}", None)
+                            st.toast(f"✅ 已覆盖为「{effective_ov}」，记录已保存")
+                            st.rerun()
+                with save_cols[1]:
+                    if cur_ov and st.button("取消覆盖", key=f"ov_cancel_{cid}"):
                         st.session_state.overrides.pop(cid, None)
+                        st.session_state.pop(f"ov_pending_{cid}", None)
                         st.toast("已取消覆盖", icon="↩")
-                    elif not ov_note.strip():
-                        st.error("覆盖原因不能为空")
-                    else:
-                        st.session_state.overrides[cid] = {"result": new_ov, "note": ov_note}
-                        save_hr_override(cid, rule_id, r["ai_result"], new_ov, ov_note)
-                        st.toast(f"✅ 已覆盖为「{new_ov}」，记录已保存")
                         st.rerun()
 
         # 简历弹窗（Expander 模拟）

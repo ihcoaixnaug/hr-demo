@@ -25,100 +25,110 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─── 全局 CSS（对齐 demo.html 的 Tailwind 风格） ──────────────────────────────
+# ─── 全局 CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 /* ── 基础 ── */
 html,body,[class*="css"]{
   font-family:-apple-system,"PingFang SC",BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
-.stApp{background:#f9fafb!important;}
+.stApp{background:#f3f4f6!important;}
 .stMainBlockContainer,.block-container{
-  max-width:860px!important;
+  max-width:880px!important;
   margin:0 auto!important;
-  padding:0 20px 60px!important;
+  padding:24px 24px 80px!important;
 }
 
 /* ── 隐藏 Streamlit 默认 chrome ── */
 #MainMenu,footer,.stDeployButton{display:none!important;}
 [data-testid="stToolbar"]{display:none!important;}
-header[data-testid="stHeader"]{background:white!important;border-bottom:1px solid #e5e7eb!important;}
-
-/* ── Tabs：对齐原版导航栏 ── */
-.stTabs [data-baseweb="tab-list"]{
+header[data-testid="stHeader"]{
   background:white!important;
   border-bottom:1px solid #e5e7eb!important;
-  padding:0!important;gap:0!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)!important;
+}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"]{
+  background:white!important;
+  border:1px solid #e5e7eb!important;
+  border-radius:12px!important;
+  padding:4px!important;gap:2px!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
+  margin-bottom:8px!important;
 }
 .stTabs [data-baseweb="tab"]{
   background:transparent!important;
   color:#6b7280!important;
   font-size:13px!important;font-weight:500!important;
-  padding:10px 16px!important;
-  border-radius:0!important;margin:0!important;
+  padding:8px 16px!important;
+  border-radius:8px!important;margin:0!important;
+  transition:all .15s!important;
 }
-.stTabs [aria-selected="true"]{color:#2563eb!important;}
-.stTabs [data-baseweb="tab-highlight"]{
-  background:#2563eb!important;height:2px!important;
+.stTabs [aria-selected="true"]{
+  color:#1d4ed8!important;
+  background:#eff6ff!important;
+  font-weight:600!important;
 }
+.stTabs [data-baseweb="tab-highlight"]{display:none!important;}
 .stTabs [data-baseweb="tab-border"]{display:none!important;}
-.stTabs [data-baseweb="tab-panel"]{padding:28px 0 0!important;}
+.stTabs [data-baseweb="tab-panel"]{padding:16px 0 0!important;}
 
-/* ── 主按钮（深色）── */
+/* ── 主按钮（深蓝渐变）── */
 .stButton>button[kind="primary"]{
-  background:#111827!important;color:white!important;
+  background:linear-gradient(135deg,#1d4ed8,#111827)!important;
+  color:white!important;
   border:none!important;border-radius:10px!important;
   font-size:14px!important;font-weight:600!important;
   padding:10px 22px!important;
+  box-shadow:0 2px 8px rgba(17,24,39,.25)!important;
+  transition:all .15s!important;
 }
-.stButton>button[kind="primary"]:hover:not(:disabled){background:#374151!important;}
+.stButton>button[kind="primary"]:hover:not(:disabled){
+  background:linear-gradient(135deg,#1e40af,#374151)!important;
+  box-shadow:0 4px 12px rgba(17,24,39,.35)!important;
+  transform:translateY(-1px)!important;
+}
 
 /* ── 次按钮 ── */
 .stButton>button{
   border-radius:8px!important;font-size:13px!important;
-  font-weight:500!important;padding:6px 12px!important;
+  font-weight:500!important;padding:6px 14px!important;
   border:1px solid #e5e7eb!important;
   color:#374151!important;background:white!important;
-  box-shadow:none!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.05)!important;
+  transition:all .12s!important;
 }
 .stButton>button:hover:not(:disabled){
-  border-color:#9ca3af!important;background:#f9fafb!important;
+  border-color:#93c5fd!important;
+  background:#f8faff!important;
+  color:#1d4ed8!important;
+  box-shadow:0 2px 6px rgba(59,130,246,.15)!important;
 }
 .stButton>button:disabled{opacity:.35!important;}
 
 /* ── Slider ── */
 [data-testid="stSlider"] [role="slider"]{background:#3b82f6!important;}
 [data-testid="stSlider"] [data-testid="stSliderThumbValue"]{
-  background:#111827!important;color:white!important;
+  background:#1d4ed8!important;color:white!important;
   font-family:monospace!important;font-size:11px!important;
   border-radius:4px!important;
 }
-/* track 高亮 */
-[data-testid="stSlider"] > div > div > div > div{
-  background:#3b82f6!important;
-}
+[data-testid="stSlider"] > div > div > div > div{background:#3b82f6!important;}
 
 /* ── Input / Textarea ── */
 .stTextInput input,.stTextArea textarea{
   border-radius:8px!important;border:1px solid #e5e7eb!important;
   font-size:13px!important;color:#374151!important;
+  background:white!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)!important;
 }
 .stTextInput input:focus,.stTextArea textarea:focus{
   border-color:#93c5fd!important;
-  box-shadow:0 0 0 3px rgba(59,130,246,.1)!important;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12)!important;
   outline:none!important;
 }
-/* hide labels we don't need */
-.stTextArea label,.stTextInput label{
-  font-size:12px!important;color:#6b7280!important;
-}
-
-/* ── Selectbox ── */
-.stSelectbox>div>div{
-  border-radius:8px!important;border:1px solid #e5e7eb!important;
-  font-size:13px!important;
-}
-.stSelectbox label{font-size:12px!important;color:#6b7280!important;}
+.stTextArea label,.stTextInput label{font-size:12px!important;color:#6b7280!important;}
 
 /* ── Checkbox ── */
 .stCheckbox label{font-size:14px!important;color:#374151!important;}
@@ -126,24 +136,34 @@ header[data-testid="stHeader"]{background:white!important;border-bottom:1px soli
 /* ── Metrics ── */
 [data-testid="metric-container"]{
   background:white!important;border:1px solid #e5e7eb!important;
-  border-radius:12px!important;padding:14px 18px!important;
+  border-radius:14px!important;padding:16px 20px!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
 }
-[data-testid="stMetricValue"]{font-size:22px!important;font-weight:800!important;color:#111827!important;}
+[data-testid="stMetricValue"]{font-size:24px!important;font-weight:800!important;color:#111827!important;}
 [data-testid="stMetricLabel"]{font-size:12px!important;color:#6b7280!important;font-weight:500!important;}
 
 /* ── Alerts ── */
 .stAlert{border-radius:10px!important;font-size:13px!important;}
 
 /* ── Expander ── */
-.stExpander{border:1px solid #e5e7eb!important;border-radius:10px!important;background:white!important;}
+.stExpander{
+  border:1px solid #e5e7eb!important;border-radius:12px!important;
+  background:white!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
+}
 .stExpander summary{font-size:13px!important;font-weight:600!important;color:#374151!important;}
 
 /* ── Container border ── */
-div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;}
+div[data-testid="stVerticalBlockBorderWrapper"]{
+  border-radius:14px!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
+  border:1px solid #e5e7eb!important;
+  background:white!important;
+}
 
-/* ── 压缩 Streamlit 默认间距 ── */
+/* ── 压缩间距 ── */
 .element-container{margin-bottom:4px!important;}
-div[data-testid="stVerticalBlock"]>div{gap:4px!important;}
+div[data-testid="stVerticalBlock"]>div{gap:6px!important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -253,23 +273,27 @@ def render_header():
             'padding:3px 10px;font-size:12px;margin-left:6px;">⚠ 预设数据模式</span>'
         )
 
-    st.markdown(f"""
-<div style="background:white;border-bottom:1px solid #e5e7eb;
-            padding:12px 0 12px;margin-bottom:0;">
-  <div style="max-width:860px;margin:0 auto;padding:0 20px;
-              display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:30px;height:30px;background:#111827;border-radius:8px;
-                  display:flex;align-items:center;justify-content:center;">
-        <span style="color:white;font-weight:800;font-size:13px;">智</span>
-      </div>
-      <span style="font-weight:800;font-size:17px;color:#111827;">智筛 AI</span>
-      <span style="font-size:13px;color:#9ca3af;">· 可信简历筛选系统</span>
+    st.html(f"""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:16px;
+            padding:14px 20px;margin-bottom:16px;
+            box-shadow:0 2px 8px rgba(0,0,0,.07);
+            display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="width:36px;height:36px;
+                background:linear-gradient(135deg,#1d4ed8,#111827);
+                border-radius:10px;
+                display:flex;align-items:center;justify-content:center;
+                box-shadow:0 2px 6px rgba(17,24,39,.3);">
+      <span style="color:white;font-weight:900;font-size:15px;">智</span>
     </div>
-    <div style="display:flex;align-items:center;">{badges_html}</div>
+    <div>
+      <span style="font-weight:800;font-size:18px;color:#111827;">智筛 AI</span>
+      <span style="font-size:13px;color:#9ca3af;margin-left:8px;">· 可信简历筛选系统</span>
+    </div>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;">{badges_html}</div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
 
 # ─── Page 1：规则构建 ─────────────────────────────────────────────────────────
@@ -378,44 +402,48 @@ def render_rule_builder():
         return
 
     # ══ 未锁定态 ══════════════════════════════════════════════════════════════
-    st.markdown('<h2 style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px;">规则构建</h2>', unsafe_allow_html=True)
-    st.markdown('<p style="font-size:14px;color:#6b7280;margin-bottom:20px;">选择招募岗位，AI 自动加载评估维度，确认后锁定发布</p>', unsafe_allow_html=True)
+    st.html("""
+<div style="margin-bottom:20px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">规则构建</h2>
+  <p style="font-size:14px;color:#6b7280;margin:0;">
+    选择招募岗位，AI 自动加载评估维度，确认后一键锁定并生成公示指纹
+  </p>
+</div>""")
 
-    # 岗位卡片
-    st.markdown('<p style="font-size:14px;font-weight:500;color:#374151;margin-bottom:8px;">选择招募岗位</p>', unsafe_allow_html=True)
+    # 岗位选择（单击即加载）
+    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 10px;">选择招募岗位</p>')
 
-    def _job_card(key, accent):
+    def _load_job(key):
         p = JOB_PRESETS[key]
-        sel = st.session_state.selected_job == key
-        border = f"2px solid {accent}" if sel else "2px solid #e5e7eb"
-        bg     = "#eff6ff" if (sel and key=="pm") else ("#f5f3ff" if (sel and key=="dev") else "white")
-        name_c = accent if sel else "#111827"
-        return f"""
-<div style="border:{border};background:{bg};border-radius:12px;
-            padding:14px 16px;cursor:pointer;transition:all .15s;">
-  <div style="font-size:14px;font-weight:700;color:{name_c};">{p["label"]}</div>
-  <div style="font-size:12px;color:#9ca3af;margin-top:2px;">{p["desc"]}</div>
-</div>"""
+        st.session_state.selected_job = key
+        st.session_state.editing_dims = copy.deepcopy(p["dims"])
+        for d in p["dims"]:
+            st.session_state[f"w_{d['id']}"] = d["weight"]
+        st.rerun()
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(_job_card("pm","#3b82f6"), unsafe_allow_html=True)
-        if st.button("选择产品经理岗", key="sel_pm", use_container_width=True):
-            p = JOB_PRESETS["pm"]
-            st.session_state.selected_job  = "pm"
-            st.session_state.editing_dims  = copy.deepcopy(p["dims"])
-            for d in p["dims"]:
-                st.session_state[f"w_{d['id']}"] = d["weight"]
-            st.rerun()
+        pm = JOB_PRESETS["pm"]
+        pm_sel = st.session_state.selected_job == "pm"
+        if st.button(
+            f"🎯  {pm['label']}",
+            key="sel_pm",
+            use_container_width=True,
+            type="primary" if pm_sel else "secondary",
+        ):
+            _load_job("pm")
+        st.caption(pm["desc"])
     with c2:
-        st.markdown(_job_card("dev","#8b5cf6"), unsafe_allow_html=True)
-        if st.button("选择后端开发岗", key="sel_dev", use_container_width=True):
-            p = JOB_PRESETS["dev"]
-            st.session_state.selected_job  = "dev"
-            st.session_state.editing_dims  = copy.deepcopy(p["dims"])
-            for d in p["dims"]:
-                st.session_state[f"w_{d['id']}"] = d["weight"]
-            st.rerun()
+        dev = JOB_PRESETS["dev"]
+        dev_sel = st.session_state.selected_job == "dev"
+        if st.button(
+            f"⚙️  {dev['label']}",
+            key="sel_dev",
+            use_container_width=True,
+            type="primary" if dev_sel else "secondary",
+        ):
+            _load_job("dev")
+        st.caption(dev["desc"])
 
     jk = st.session_state.selected_job
     if not jk:
@@ -426,12 +454,13 @@ def render_rule_builder():
     edit_dims = st.session_state.editing_dims or copy.deepcopy(preset["dims"])
     st.session_state.editing_dims = edit_dims
 
-    st.markdown(f"""
-<div style="display:flex;align-items:center;gap:6px;color:#059669;
-            font-size:13px;margin:14px 0 6px;">
-  <span>✅</span>
-  <span>已加载「{preset["label"]}」评估维度</span>
-</div>""", unsafe_allow_html=True)
+    st.html(f"""
+<div style="display:flex;align-items:center;gap:8px;
+            background:#f0fdf4;border:1px solid #86efac;border-radius:10px;
+            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#166534;">
+  <span style="font-size:15px;">✅</span>
+  <span>已加载「<strong>{preset["label"]}</strong>」评估维度，可调整权重后锁定</span>
+</div>""")
 
     with st.expander("查看岗位 JD"):
         st.code(preset["jd"], language=None)
@@ -481,18 +510,28 @@ def render_screening():
     results = st.session_state.screening_results
 
     if not st.session_state.rule_locked or not dims or not jk:
-        st.markdown("""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:40px;text-align:center;color:#6b7280;font-size:14px;">
-  🔒 请先在「🏗 规则构建」页完成规则锁定，再来筛选
-</div>""", unsafe_allow_html=True)
+        st.html("""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:16px;
+            padding:56px 40px;text-align:center;
+            box-shadow:0 1px 4px rgba(0,0,0,.06);">
+  <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+  <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px;">规则尚未锁定</div>
+  <div style="font-size:13px;color:#9ca3af;">请先在「🏗 规则构建」页完成规则锁定，再来筛选</div>
+</div>""")
         return
 
     preset  = JOB_PRESETS[jk]
     job_c   = [c for c in CANDIDATES if c["job"] == jk]
 
-    st.markdown(f'<h2 style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px;">筛选工作台</h2>', unsafe_allow_html=True)
-    st.markdown(f'<p style="font-size:14px;color:#6b7280;margin-bottom:16px;">AI 按锁定规则逐条评分并给出可追溯理由 · {preset["label"]}</p>', unsafe_allow_html=True)
+    st.html(f"""
+<div style="margin-bottom:16px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">筛选工作台</h2>
+  <p style="font-size:14px;color:#6b7280;margin:0;">
+    AI 按锁定规则逐条评分 · 每条结论追溯维度 ·
+    <span style="background:#eff6ff;color:#1d4ed8;border-radius:999px;
+                 padding:1px 8px;font-size:12px;font-weight:600;">{preset["label"]}</span>
+  </p>
+</div>""")
 
     # ── 候选人选择区 ──────────────────────────────────────────────────────────
     with st.container(border=True):
@@ -752,8 +791,14 @@ def render_candidate_view():
     at      = st.session_state.locked_at
     results = st.session_state.screening_results
 
-    st.markdown('<h2 style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px;">候选人视图</h2>', unsafe_allow_html=True)
-    st.markdown('<p style="font-size:14px;color:#6b7280;margin-bottom:16px;">候选人登录后看到的页面（模拟）· 维度结论可见，分数不对外显示</p>', unsafe_allow_html=True)
+    st.html("""
+<div style="margin-bottom:16px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">候选人视图</h2>
+  <p style="font-size:14px;color:#6b7280;margin:0;">
+    候选人登录后看到的页面（模拟）·
+    维度结论可见，<span style="color:#ef4444;">分数不对外显示</span>
+  </p>
+</div>""")
 
     # 候选人选择器
     for grp_key, grp_label in [("pm","产品经理岗"), ("dev","后端开发岗")]:
@@ -921,8 +966,11 @@ def render_candidate_view():
 def render_pool_view():
     pool = st.session_state.pool
 
-    st.markdown('<h2 style="font-size:20px;font-weight:700;color:#111827;margin-bottom:4px;">简历备选池</h2>', unsafe_allow_html=True)
-    st.markdown('<p style="font-size:14px;color:#6b7280;margin-bottom:16px;">跨岗位备选简历，供其他 HR 参考复用</p>', unsafe_allow_html=True)
+    st.html("""
+<div style="margin-bottom:16px;">
+  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">简历备选池</h2>
+  <p style="font-size:14px;color:#6b7280;margin:0;">跨岗位备选简历，供其他 HR 参考复用</p>
+</div>""")
 
     if not pool:
         st.markdown("""

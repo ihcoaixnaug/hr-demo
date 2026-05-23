@@ -41,14 +41,21 @@ def result_color(result: str) -> str:
 
 
 def build_resume_text(candidate: dict) -> str:
-    """把候选人 resume 结构拼成纯文本，供 LLM 阅读。"""
+    """把候选人 resume 拼成纯文本供 LLM 评分。
+
+    ⚠️ 反歧视设计：
+    - 院校名称、985/双非标签 → 完全移除，LLM 看不到
+    - 专业、GPA、经历正文、技能 → 保留（属于可观察事实）
+    - 只字不提任何排名信号，从技术层面杜绝院校歧视
+    """
     r = candidate["resume"]
     lines = []
-    lines.append(f"学校：{candidate['school']}（仅供记录，不得用于评分）")
-    lines.append(f"专业：{candidate['major']}　GPA：{r.get('gpa', '未知')}")
+    # 只保留专业和 GPA，不含院校名称
+    lines.append(f"专业背景：{candidate['major']}　GPA：{r.get('gpa', '未知')}")
     lines.append("")
     lines.append("=== 项目 / 实习经历 ===")
     for exp in r.get("experiences", []):
+        # org 保留：公司/机构名是经历事实的一部分（如"某互联网公司"已脱敏），不是排名信号
         lines.append(f"\n【{exp['title']}】{exp['org']}  {exp['period']}")
         for b in exp.get("bullets", []):
             lines.append(f"  · {b}")

@@ -233,12 +233,12 @@ header[data-testid="stHeader"]{display:none!important;}
   border:1px solid var(--border)!important;
   border-radius:var(--r-card)!important;
   padding:20px 22px!important;
-  box-shadow:var(--shadow-neo-sm)!important;
+  box-shadow:var(--shadow-sm)!important;
   transition:box-shadow .28s var(--spring),transform .28s var(--spring)!important;
   animation:fadeUp .5s var(--ease-out) both!important;
 }
 [data-testid="metric-container"]:hover{
-  box-shadow:var(--shadow-neo-md)!important;
+  box-shadow:var(--shadow-md)!important;
   transform:translateY(-2px)!important;
 }
 [data-testid="stMetricValue"]{
@@ -259,11 +259,11 @@ header[data-testid="stHeader"]{display:none!important;}
   border:1px solid var(--border)!important;
   border-radius:var(--r-card)!important;
   background:var(--surface)!important;
-  box-shadow:var(--shadow-neo-sm)!important;
+  box-shadow:var(--shadow-sm)!important;
   overflow:hidden!important;
   transition:box-shadow .26s var(--spring)!important;
 }
-.stExpander:hover{box-shadow:var(--shadow-neo-md)!important;}
+.stExpander:hover{box-shadow:var(--shadow-md)!important;}
 .stExpander summary{
   font-size:13px!important;font-weight:600!important;color:var(--tx-1)!important;
   padding:13px 16px!important;
@@ -273,13 +273,13 @@ header[data-testid="stHeader"]{display:none!important;}
 /* ══ Border container ══════════════════════════════════════════════════════ */
 div[data-testid="stVerticalBlockBorderWrapper"]{
   border-radius:var(--r-card)!important;
-  box-shadow:var(--shadow-neo-sm)!important;
+  box-shadow:var(--shadow-sm)!important;
   border:1px solid var(--border)!important;
   background:var(--surface)!important;
   transition:box-shadow .26s var(--spring)!important;
 }
 div[data-testid="stVerticalBlockBorderWrapper"]:hover{
-  box-shadow:var(--shadow-neo-md)!important;
+  box-shadow:var(--shadow-md)!important;
 }
 
 /* ══ Progress bar — mint ══════════════════════════════════════════════════ */
@@ -963,37 +963,102 @@ def render_screening():
     rej = sum(1 for r in all_finals if r == "不推进")
     auto = round(((s_n + rej) / n) * 100) if n else 0
 
-    _neo = "box-shadow:4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82);"
-    _card = lambda top, label, val, unit: f"""
-<div style="background:#FEFDFB;border:1px solid #E2DED7;border-radius:20px;
-            padding:20px 20px 17px;position:relative;overflow:hidden;{_neo}">
-  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:{top};"></div>
-  <div style="font-size:10px;font-weight:700;color:#9E9A94;text-transform:uppercase;
-              letter-spacing:.09em;margin-bottom:12px;margin-top:4px;">{label}</div>
-  <div style="font-size:34px;font-weight:800;color:#1C1B18;letter-spacing:-.04em;
-              font-variant-numeric:tabular-nums;line-height:1;">{val}{"" if not unit else f'<span style="font-size:13px;font-weight:400;color:#9E9A94;letter-spacing:.01em;margin-left:3px;">{unit}</span>'}</div>
-</div>"""
+    # ── Be.run 风格 bento 统计区 ───────────────────────────────────────────────
+    s_pct = round(s_n / n * 100) if n else 0
+    p_pct = round(p_n / n * 100) if n else 0
+    r_pct = 100 - s_pct - p_pct
+
+    _s_blob = max(50, min(120, int(s_n / max(n, 1) * 230)))
+    _p_blob = max(50, min(120, int(p_n / max(n, 1) * 230)))
+    _r_blob = max(50, min(120, int(rej  / max(n, 1) * 230)))
+
+    _ring_deg   = round(auto * 3.6)
+    _ring_color = "#6AADA0" if auto >= 80 else "#F59E0B" if auto >= 60 else "#EF4444"
+    _ring_label = "✓ 目标达成" if auto >= 80 else "目标 ≥ 80%"
+
     st.html(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.3fr;gap:12px;margin-bottom:28px;">
-  {_card("#D6D0C8","本次筛选",n,"份")}
-  {_card("#4ADE80","强推进",s_n,"")}
-  {_card("#FCD34D","待定",p_n,"")}
-  {_card("#FCA5A5","不推进",rej,"")}
-  <div style="background:#FEFDFB;border:1px solid #E2DED7;border-radius:20px;
-              padding:20px 20px 17px;position:relative;overflow:hidden;{_neo}">
-    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#6AADA0;"></div>
+<div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:28px;">
+
+  <!-- ▌ 左：候选人分布 (light card) -->
+  <div style="background:#FEFDFB;border:1px solid #E8E4DE;border-radius:20px;
+              padding:24px 26px;box-shadow:0 2px 14px rgba(28,23,20,.07);">
     <div style="font-size:10px;font-weight:700;color:#9E9A94;text-transform:uppercase;
-                letter-spacing:.09em;margin-bottom:12px;margin-top:4px;
-                display:flex;align-items:center;gap:5px;">AI 自动处理
-      <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;剩余待定 {p_n} 份需人工复核"
-            style="display:inline-flex;align-items:center;justify-content:center;
-                   width:14px;height:14px;border-radius:50%;border:1.5px solid #C4BCB2;
-                   color:#9E9A94;font-size:9px;font-weight:700;cursor:default;">?</span>
+                letter-spacing:.1em;margin-bottom:16px;">本批筛选 · {n} 份</div>
+
+    <!-- blob 背景 + 数值叠加 -->
+    <div style="position:relative;height:90px;margin-bottom:18px;">
+      <div style="position:absolute;width:{_s_blob}px;height:{_s_blob}px;
+                  background:rgba(74,222,128,.20);border-radius:50%;
+                  filter:blur(22px);top:50%;left:9%;transform:translateY(-50%);"></div>
+      <div style="position:absolute;width:{_p_blob}px;height:{_p_blob}px;
+                  background:rgba(252,211,77,.22);border-radius:50%;
+                  filter:blur(18px);top:50%;left:42%;transform:translateY(-50%);"></div>
+      <div style="position:absolute;width:{_r_blob}px;height:{_r_blob}px;
+                  background:rgba(248,113,113,.20);border-radius:50%;
+                  filter:blur(18px);top:50%;left:70%;transform:translateY(-50%);"></div>
+      <div style="position:relative;z-index:1;display:flex;height:100%;align-items:center;">
+        <div style="flex:1;text-align:center;">
+          <div style="font-size:40px;font-weight:900;color:#166534;letter-spacing:-.05em;
+                      font-variant-numeric:tabular-nums;line-height:1;">{s_n}</div>
+          <div style="font-size:11px;font-weight:600;color:#4ADE80;margin-top:4px;">强推进面试</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="font-size:40px;font-weight:900;color:#92400E;letter-spacing:-.05em;
+                      font-variant-numeric:tabular-nums;line-height:1;">{p_n}</div>
+          <div style="font-size:11px;font-weight:600;color:#F59E0B;margin-top:4px;">待定</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="font-size:40px;font-weight:900;color:#991B1B;letter-spacing:-.05em;
+                      font-variant-numeric:tabular-nums;line-height:1;">{rej}</div>
+          <div style="font-size:11px;font-weight:600;color:#EF4444;margin-top:4px;">不推进</div>
+        </div>
+      </div>
     </div>
-    <div style="font-size:34px;font-weight:800;color:#1C1B18;letter-spacing:-.04em;
-                font-variant-numeric:tabular-nums;line-height:1;">{auto}<span style="font-size:13px;font-weight:400;color:#9E9A94;letter-spacing:.01em;margin-left:3px;">%</span></div>
-    <div style="font-size:11px;color:#6AADA0;font-weight:600;margin-top:8px;">目标 ≥ 80%</div>
+
+    <!-- 比例条 -->
+    <div style="background:#F0EDE8;border-radius:999px;height:5px;overflow:hidden;">
+      <div style="display:flex;height:100%;">
+        <div style="width:{s_pct}%;background:linear-gradient(to right,#86EFAC,#4ADE80);
+                    border-radius:999px 0 0 999px;min-width:{2 if s_n else 0}px;"></div>
+        <div style="width:{p_pct}%;background:#F59E0B;
+                    min-width:{2 if p_n else 0}px;"></div>
+        <div style="flex:1;background:#F87171;border-radius:0 999px 999px 0;"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-around;margin-top:9px;">
+      <span style="font-size:11px;color:#9E9994;">强推进 {s_pct}%</span>
+      <span style="font-size:11px;color:#9E9994;">待定 {p_pct}%</span>
+      <span style="font-size:11px;color:#9E9994;">不推进 {r_pct}%</span>
+    </div>
   </div>
+
+  <!-- ▌ 右：AI 处理率 (dark card) -->
+  <div style="background:linear-gradient(160deg,#1A1714 0%,#2D2825 100%);
+              border-radius:20px;padding:24px;
+              box-shadow:0 4px 20px rgba(28,23,20,.22);">
+    <div style="font-size:10px;font-weight:700;color:#4D4844;text-transform:uppercase;
+                letter-spacing:.1em;margin-bottom:20px;">AI 自动处理率</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <!-- conic-gradient donut ring -->
+      <div style="width:82px;height:82px;border-radius:50%;flex-shrink:0;
+                  background:conic-gradient({_ring_color} {_ring_deg}deg,#2D2825 0deg);
+                  display:flex;align-items:center;justify-content:center;">
+        <div style="width:58px;height:58px;background:#1A1714;border-radius:50%;"></div>
+      </div>
+      <div>
+        <div style="font-size:46px;font-weight:900;color:#FEFDFB;letter-spacing:-.05em;
+                    font-variant-numeric:tabular-nums;line-height:1;">{auto}<span
+             style="font-size:14px;font-weight:400;color:#4D4844;margin-left:2px;">%</span></div>
+        <div style="font-size:12px;color:{_ring_color};font-weight:600;margin-top:7px;">{_ring_label}</div>
+        <div style="font-size:11px;color:#3D3A36;margin-top:3px;">{s_n + rej}/{n} 份已决策</div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:#3A3733;margin-top:16px;padding-top:12px;
+                border-top:1px solid #262320;line-height:1.6;">
+      (强推 {s_n} + 不推进 {rej}) ÷ {n} 份 · 待定 {p_n} 份需人工复核
+    </div>
+  </div>
+
 </div>""")
 
     # ── 漏斗预估：基于当前强推率推算全量 12000 份简历的到面人数 ─────────────────
@@ -1118,16 +1183,16 @@ def render_screening():
   {"<br/>覆盖原因：" + ov_data.get("note","") if ov_data.get("note") else ""}
 </div>"""
 
-        # 主卡片 HTML — neumorphic + left accent strip
-        _neo_card = "4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82)"
-        _neo_hover = "6px 6px 18px rgba(28,23,20,.10),-3px -3px 10px rgba(255,255,255,.86)"
+        # 主卡片 HTML — flat shadow + left accent strip (Be.run 风格)
+        _flat_card = "0 2px 14px rgba(28,23,20,.07),0 1px 3px rgba(28,23,20,.04)"
+        _flat_hover = "0 10px 32px rgba(28,23,20,.13),0 3px 8px rgba(28,23,20,.06)"
         st.html(f"""
 <div style="background:#FEFDFB;border-radius:20px;overflow:hidden;
-            box-shadow:{_neo_card};
+            box-shadow:{_flat_card};
             transition:box-shadow .28s cubic-bezier(0.34,1.56,0.64,1),
                        transform .28s cubic-bezier(0.34,1.56,0.64,1);"
-     onmouseenter="this.style.boxShadow='{_neo_hover}';this.style.transform='translateY(-3px)'"
-     onmouseleave="this.style.boxShadow='{_neo_card}';this.style.transform='translateY(0)'">
+     onmouseenter="this.style.boxShadow='{_flat_hover}';this.style.transform='translateY(-3px)'"
+     onmouseleave="this.style.boxShadow='{_flat_card}';this.style.transform='translateY(0)'">
   <div style="display:flex;height:100%;">
     <div style="width:5px;flex-shrink:0;background:{cm['accent']};"></div>
     <div style="flex:1;padding:22px 24px;border:1px solid #E2DED7;border-left:none;

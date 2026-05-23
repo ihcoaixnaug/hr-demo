@@ -616,18 +616,18 @@ def render_rule_builder():
     <span style="font-size:16px;">🔒</span>
     <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">{jl_l} · 规则已锁定 · 不可修改</span>
   </div>
-  <p style="font-size:12px;color:#9ca3af;margin:0 0 18px;">锁定时间：{at_l}</p>
+  <p style="font-size:12px;color:#C8C4BE;margin:0 0 18px;">锁定时间：{at_l}</p>
   <div style="background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);
               border-radius:12px;padding:16px 18px;margin-bottom:16px;">
-    <p style="font-size:11px;color:#9E9A94;margin:0 0 8px;text-transform:uppercase;
+    <p style="font-size:11px;color:#C8C4BE;margin:0 0 8px;text-transform:uppercase;
                letter-spacing:.06em;font-weight:600;">RULE HASH · 规则指纹</p>
     <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:26px;
                  color:#6ee7b7;font-weight:900;letter-spacing:.2em;">{fp_l}</span>
-    <p style="font-size:11.5px;color:#9E9A94;margin:8px 0 0;line-height:1.5;">
+    <p style="font-size:11.5px;color:#C8C4BE;margin:8px 0 0;line-height:1.5;">
       规则内容改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
     </p>
   </div>
-  <div style="font-size:12px;color:#9E9994;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+  <div style="font-size:12px;color:#C8C4BE;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
     <span>🔗</span>
     <span>规则已同步公示页，候选人收到的投递确认邮件含本指纹</span>
   </div>
@@ -1038,7 +1038,7 @@ def render_screening():
   <div style="background:linear-gradient(160deg,#1A1714 0%,#2D2825 100%);
               border-radius:20px;padding:24px;
               box-shadow:0 4px 20px rgba(28,23,20,.22);">
-    <div style="font-size:10px;font-weight:700;color:#8A8580;text-transform:uppercase;
+    <div style="font-size:10px;font-weight:700;color:#A8A49E;text-transform:uppercase;
                 letter-spacing:.1em;margin-bottom:20px;">AI 自动处理率</div>
     <div style="display:flex;align-items:center;gap:20px;">
       <!-- conic-gradient donut ring -->
@@ -1050,13 +1050,13 @@ def render_screening():
       <div>
         <div style="font-size:46px;font-weight:900;color:#FEFDFB;letter-spacing:-.05em;
                     font-variant-numeric:tabular-nums;line-height:1;">{auto}<span
-             style="font-size:14px;font-weight:400;color:#8A8580;margin-left:2px;">%</span></div>
+             style="font-size:14px;font-weight:400;color:#A8A49E;margin-left:2px;">%</span></div>
         <div style="font-size:12px;color:{_ring_color};font-weight:600;margin-top:7px;">{_ring_label}</div>
-        <div style="font-size:11px;color:#7A7570;margin-top:3px;">{s_n + rej}/{n} 份已决策</div>
+        <div style="font-size:11px;color:#C8C4BE;margin-top:3px;">{s_n + rej}/{n} 份已决策</div>
       </div>
     </div>
-    <div style="font-size:10.5px;color:#7A7570;margin-top:16px;padding-top:12px;
-                border-top:1px solid #363330;line-height:1.6;">
+    <div style="font-size:10.5px;color:#A8A49E;margin-top:16px;padding-top:12px;
+                border-top:1px solid #3D3936;line-height:1.6;">
       (强推 {s_n} + 不推进 {rej}) ÷ {n} 份 · 待定 {p_n} 份需人工复核
     </div>
   </div>
@@ -1147,7 +1147,7 @@ def render_screening():
         综合得分 <strong style="color:#6ee7b7;font-size:16px;">{_top_ne_score}</strong> 分，
         超过 <strong style="color:#fff;">{_beaten_count}</strong> 位 985/211 候选人
       </div>
-      <div style="font-size:12px;color:#9E9A94;margin-top:8px;line-height:1.6;">
+      <div style="font-size:12px;color:#C8C4BE;margin-top:8px;line-height:1.6;">
         系统在技术层面已移除院校名称，评分完全基于简历中可观察的能力事实。
         双非候选人凭实力排名更高——这是本方案化解「院校歧视 vs 能力优先」冲突的核心证明。
       </div>

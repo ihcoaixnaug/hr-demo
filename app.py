@@ -30,20 +30,34 @@ st.markdown("""
 <style>
 /* ══ 设计 Token ═══════════════════════════════════════════════════════════ */
 :root{
-  --bg:        #F5F3EF;
-  --surface:   #FEFCF9;
-  --surface-2: #F0EDE8;
-  --border:    #E3DED6;
-  --border-lt: #EDE9E2;
-  --tx-1:      #1A1714;
-  --tx-2:      #6B6560;
-  --tx-3:      #9E9994;
+  --bg:        #F5F4F0;
+  --surface:   #FEFDFB;
+  --surface-2: #EFF0EC;
+  --border:    #E2DED7;
+  --border-lt: #ECE9E3;
+  --tx-1:      #1C1B18;
+  --tx-2:      #6A6660;
+  --tx-3:      #9E9A94;
+
+  /* mint/sage 主色 */
+  --mint:      #6AADA0;
+  --mint-lt:   #E8F3F1;
+  --mint-md:   #A8D4CE;
+  --mint-dark: #4A897E;
+
+  /* neumorphic 阴影 */
+  --shadow-neo-sm: 4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82);
+  --shadow-neo-md: 6px 6px 16px rgba(28,23,20,.09),-3px -3px 9px rgba(255,255,255,.85);
+  --shadow-neo-in: inset 2px 2px 5px rgba(28,23,20,.08),inset -2px -2px 5px rgba(255,255,255,.8);
   --shadow-sm: 0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04);
   --shadow-md: 0 4px 14px rgba(28,23,20,.09),0 2px 4px rgba(28,23,20,.05);
   --shadow-lg: 0 8px 28px rgba(28,23,20,.11),0 3px 8px rgba(28,23,20,.06);
   --spring:    cubic-bezier(0.34,1.56,0.64,1);
   --smooth:    cubic-bezier(0.4,0,0.2,1);
   --ease-out:  cubic-bezier(0,0,0.2,1);
+  --r-pill:    999px;
+  --r-card:    20px;
+  --r-sm:      12px;
 }
 
 /* ══ 动效关键帧 ═══════════════════════════════════════════════════════════ */
@@ -87,11 +101,11 @@ header[data-testid="stHeader"]{display:none!important;}
 .stTabs [data-baseweb="tab-list"]{
   background:var(--surface)!important;
   border:1px solid var(--border)!important;
-  border-radius:14px!important;
+  border-radius:var(--r-pill)!important;
   padding:5px!important;
-  gap:2px!important;
-  box-shadow:var(--shadow-sm)!important;
-  margin-bottom:8px!important;
+  gap:3px!important;
+  box-shadow:var(--shadow-neo-sm)!important;
+  margin-bottom:10px!important;
   display:flex!important;
   width:100%!important;
 }
@@ -100,109 +114,109 @@ header[data-testid="stHeader"]{display:none!important;}
   color:var(--tx-2)!important;
   font-size:13px!important;
   font-weight:500!important;
-  padding:7px 14px!important;
-  border-radius:10px!important;
+  padding:8px 16px!important;
+  border-radius:var(--r-pill)!important;
   margin:0!important;
-  transition:all .22s var(--smooth)!important;
+  transition:all .26s var(--spring)!important;
   white-space:nowrap!important;
   flex:1!important;
   justify-content:center!important;
   display:flex!important;
 }
 .stTabs [aria-selected="true"]{
-  color:var(--tx-1)!important;
-  background:var(--surface-2)!important;
+  color:#fff!important;
+  background:var(--mint)!important;
   font-weight:700!important;
-  box-shadow:var(--shadow-sm)!important;
+  box-shadow:0 2px 8px rgba(106,173,160,.35),0 1px 3px rgba(106,173,160,.25)!important;
 }
 .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]){
   color:var(--tx-1)!important;
-  background:var(--surface-2)!important;
+  background:var(--mint-lt)!important;
 }
 .stTabs [data-baseweb="tab-highlight"]{display:none!important;}
 .stTabs [data-baseweb="tab-border"]{display:none!important;}
-.stTabs [data-baseweb="tab-panel"]{padding:16px 0 0!important;}
+.stTabs [data-baseweb="tab-panel"]{padding:18px 0 0!important;}
 
-/* ══ Primary 按钮 ══════════════════════════════════════════════════════════ */
+/* ══ Primary 按钮 — pill + mint ═══════════════════════════════════════════ */
 .stButton>button[kind="primary"]{
-  background:var(--tx-1)!important;
-  color:#FEFCF9!important;
+  background:var(--mint)!important;
+  color:#fff!important;
   border:none!important;
-  border-radius:10px!important;
+  border-radius:var(--r-pill)!important;
   font-size:14px!important;
   font-weight:600!important;
-  padding:10px 24px!important;
+  padding:10px 28px!important;
   letter-spacing:.01em!important;
-  box-shadow:0 2px 8px rgba(28,23,20,.22),0 1px 2px rgba(28,23,20,.14)!important;
-  transition:all .28s var(--spring)!important;
+  box-shadow:0 3px 10px rgba(106,173,160,.32),0 1px 3px rgba(106,173,160,.20)!important;
+  transition:all .30s var(--spring)!important;
   white-space:nowrap!important;
 }
 .stButton>button[kind="primary"]:hover:not(:disabled){
-  background:#3D3530!important;
-  box-shadow:0 6px 20px rgba(28,23,20,.26),0 2px 6px rgba(28,23,20,.14)!important;
-  transform:translateY(-2px)!important;
+  background:var(--mint-dark)!important;
+  box-shadow:0 6px 22px rgba(106,173,160,.40),0 2px 6px rgba(106,173,160,.22)!important;
+  transform:translateY(-2px) scale(1.01)!important;
 }
 .stButton>button[kind="primary"]:active:not(:disabled){
-  transform:translateY(0) scale(.98)!important;
-  box-shadow:0 1px 4px rgba(28,23,20,.18)!important;
+  transform:translateY(0) scale(.97)!important;
+  box-shadow:0 1px 4px rgba(106,173,160,.25)!important;
 }
 
-/* ══ Secondary / 默认按钮 ══════════════════════════════════════════════════ */
+/* ══ Secondary / 默认按钮 — pill + neo shadow ══════════════════════════════ */
 .stButton>button{
-  border-radius:8px!important;
+  border-radius:var(--r-pill)!important;
   font-size:13px!important;
   font-weight:500!important;
-  padding:7px 14px!important;
+  padding:7px 18px!important;
   border:1px solid var(--border)!important;
   color:var(--tx-1)!important;
   background:var(--surface)!important;
-  box-shadow:var(--shadow-sm)!important;
-  transition:all .24s var(--spring)!important;
+  box-shadow:var(--shadow-neo-sm)!important;
+  transition:all .26s var(--spring)!important;
   white-space:nowrap!important;
   overflow:visible!important;
 }
 .stButton>button:hover:not(:disabled){
-  border-color:#C4BCB2!important;
-  background:var(--surface-2)!important;
-  color:var(--tx-1)!important;
-  box-shadow:var(--shadow-md)!important;
+  border-color:var(--mint-md)!important;
+  background:var(--mint-lt)!important;
+  color:var(--mint-dark)!important;
+  box-shadow:var(--shadow-neo-md)!important;
   transform:translateY(-1px)!important;
 }
 .stButton>button:active:not(:disabled){
-  transform:translateY(0) scale(.98)!important;
-  box-shadow:var(--shadow-sm)!important;
+  transform:translateY(0) scale(.97)!important;
+  box-shadow:var(--shadow-neo-in)!important;
 }
-.stButton>button:disabled{opacity:.36!important;cursor:not-allowed!important;}
+.stButton>button:disabled{opacity:.38!important;cursor:not-allowed!important;}
 
-/* ══ Slider ══════════════════════════════════════════════════════════════ */
+/* ══ Slider — mint ════════════════════════════════════════════════════════ */
 [data-testid="stSlider"] [role="slider"]{
-  background:var(--tx-1)!important;
-  box-shadow:0 0 0 3px rgba(28,23,20,.14)!important;
+  background:var(--mint)!important;
+  box-shadow:0 0 0 3px rgba(106,173,160,.20)!important;
 }
 [data-testid="stSlider"] [data-testid="stSliderThumbValue"]{
-  background:var(--tx-1)!important;color:#FEFCF9!important;
+  background:var(--mint)!important;color:#fff!important;
   font-family:monospace!important;font-size:11px!important;
-  border-radius:5px!important;
+  border-radius:var(--r-pill)!important;
 }
 [data-testid="stSlider"] > div > div > div > div{
-  background:var(--tx-1)!important;
+  background:var(--mint)!important;
   border-radius:999px!important;
 }
 [data-testid="stSlider"] label{font-size:13px!important;font-weight:500!important;color:var(--tx-1)!important;}
 
-/* ══ Input / Textarea ══════════════════════════════════════════════════════ */
+/* ══ Input / Textarea — rounded + inset neo ════════════════════════════════ */
 .stTextInput input,.stTextArea textarea{
-  border-radius:10px!important;
+  border-radius:14px!important;
   border:1.5px solid var(--border)!important;
   font-size:13.5px!important;
   color:var(--tx-1)!important;
   background:var(--surface)!important;
-  box-shadow:var(--shadow-sm)!important;
-  transition:border-color .18s var(--smooth),box-shadow .18s var(--smooth)!important;
+  box-shadow:var(--shadow-neo-in)!important;
+  transition:border-color .2s var(--smooth),box-shadow .2s var(--smooth)!important;
 }
 .stTextInput input:focus,.stTextArea textarea:focus{
-  border-color:#A8A09A!important;
-  box-shadow:0 0 0 3px rgba(28,23,20,.10)!important;
+  border-color:var(--mint-md)!important;
+  box-shadow:var(--shadow-neo-in),0 0 0 3px rgba(106,173,160,.14)!important;
   outline:none!important;
 }
 .stTextArea label,.stTextInput label{
@@ -211,20 +225,20 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Checkbox ══════════════════════════════════════════════════════════════ */
 .stCheckbox label{font-size:13.5px!important;color:var(--tx-1)!important;}
-.stCheckbox [data-testid="stCheckbox"]:hover label{color:var(--tx-1)!important;}
+.stCheckbox [data-testid="stCheckbox"]:hover label{color:var(--mint-dark)!important;}
 
 /* ══ Metric 卡片 ══════════════════════════════════════════════════════════ */
 [data-testid="metric-container"]{
   background:var(--surface)!important;
   border:1px solid var(--border)!important;
-  border-radius:16px!important;
+  border-radius:var(--r-card)!important;
   padding:20px 22px!important;
-  box-shadow:var(--shadow-sm)!important;
+  box-shadow:var(--shadow-neo-sm)!important;
   transition:box-shadow .28s var(--spring),transform .28s var(--spring)!important;
   animation:fadeUp .5s var(--ease-out) both!important;
 }
 [data-testid="metric-container"]:hover{
-  box-shadow:var(--shadow-md)!important;
+  box-shadow:var(--shadow-neo-md)!important;
   transform:translateY(-2px)!important;
 }
 [data-testid="stMetricValue"]{
@@ -238,39 +252,39 @@ header[data-testid="stHeader"]{display:none!important;}
 }
 
 /* ══ Alerts ══════════════════════════════════════════════════════════════ */
-.stAlert{border-radius:12px!important;font-size:13px!important;}
+.stAlert{border-radius:var(--r-card)!important;font-size:13px!important;}
 
 /* ══ Expander ══════════════════════════════════════════════════════════════ */
 .stExpander{
   border:1px solid var(--border)!important;
-  border-radius:14px!important;
+  border-radius:var(--r-card)!important;
   background:var(--surface)!important;
-  box-shadow:var(--shadow-sm)!important;
+  box-shadow:var(--shadow-neo-sm)!important;
   overflow:hidden!important;
-  transition:box-shadow .24s var(--spring)!important;
+  transition:box-shadow .26s var(--spring)!important;
 }
-.stExpander:hover{box-shadow:var(--shadow-md)!important;}
+.stExpander:hover{box-shadow:var(--shadow-neo-md)!important;}
 .stExpander summary{
   font-size:13px!important;font-weight:600!important;color:var(--tx-1)!important;
-  padding:12px 16px!important;
+  padding:13px 16px!important;
 }
-.stExpander summary:hover{background:var(--surface-2)!important;}
+.stExpander summary:hover{background:var(--mint-lt)!important;}
 
 /* ══ Border container ══════════════════════════════════════════════════════ */
 div[data-testid="stVerticalBlockBorderWrapper"]{
-  border-radius:16px!important;
-  box-shadow:var(--shadow-sm)!important;
+  border-radius:var(--r-card)!important;
+  box-shadow:var(--shadow-neo-sm)!important;
   border:1px solid var(--border)!important;
   background:var(--surface)!important;
-  transition:box-shadow .28s var(--spring)!important;
+  transition:box-shadow .26s var(--spring)!important;
 }
 div[data-testid="stVerticalBlockBorderWrapper"]:hover{
-  box-shadow:var(--shadow-md)!important;
+  box-shadow:var(--shadow-neo-md)!important;
 }
 
-/* ══ Progress bar ══════════════════════════════════════════════════════════ */
+/* ══ Progress bar — mint ══════════════════════════════════════════════════ */
 [data-testid="stProgress"] > div > div{
-  background:var(--tx-1)!important;
+  background:var(--mint)!important;
   border-radius:999px!important;
   transition:width .4s var(--ease-out)!important;
 }
@@ -593,9 +607,9 @@ def render_rule_builder():
                 for d in dims_l
             )
             st.markdown(f"""
-<div style="background:linear-gradient(160deg,#1A1714 0%,#2D2825 100%);
-            border-radius:18px;padding:22px 24px;color:#FEFCF9;margin-bottom:0;
-            box-shadow:0 4px 20px rgba(28,23,20,.30);">
+<div style="background:linear-gradient(160deg,#1C1B18 0%,#2D2825 100%);
+            border-radius:24px;padding:24px 26px;color:#FEFDFB;margin-bottom:0;
+            box-shadow:6px 6px 20px rgba(28,23,20,.18),-2px -2px 8px rgba(255,255,255,.06);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
     <span style="font-size:16px;">🔒</span>
     <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">{jl_l} · 规则已锁定 · 不可修改</span>
@@ -926,9 +940,9 @@ def render_screening():
 
     if not results:
         st.html("""
-<div style="border:1.5px dashed #D4CFC8;border-radius:16px;
-            padding:56px 32px;text-align:center;margin-top:16px;">
-  <div style="width:48px;height:48px;background:#F5F3EF;border-radius:14px;
+<div style="border:1.5px dashed #C8C4BC;border-radius:24px;
+            padding:64px 32px;text-align:center;margin-top:16px;">
+  <div style="width:52px;height:52px;background:#EFF0EC;border-radius:16px;
               display:flex;align-items:center;justify-content:center;
               margin:0 auto 16px;font-size:22px;">🚀</div>
   <div style="font-size:15px;font-weight:700;color:#1A1714;letter-spacing:-.01em;margin-bottom:8px;">
@@ -949,38 +963,36 @@ def render_screening():
     rej = sum(1 for r in all_finals if r == "不推进")
     auto = round(((s_n + rej) / n) * 100) if n else 0
 
-    _card = lambda top, label, val, unit, sub, hint: f"""
-<div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
-            padding:18px 18px 16px;position:relative;overflow:hidden;">
-  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:{top};
-              border-radius:14px 14px 0 0;"></div>
-  <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
-              letter-spacing:.08em;margin-bottom:10px;margin-top:2px;">{label}</div>
-  <div style="font-size:32px;font-weight:800;color:#1A1714;letter-spacing:-.04em;
-              font-variant-numeric:tabular-nums;line-height:1;">{val}{"" if not unit else f'<span style="font-size:14px;font-weight:400;color:#9E9994;letter-spacing:0;margin-left:2px;">{unit}</span>'}</div>
-  {"" if not sub else f'<div style="font-size:11px;color:#9E9994;margin-top:6px;">{sub}</div>'}
+    _neo = "box-shadow:4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82);"
+    _card = lambda top, label, val, unit: f"""
+<div style="background:#FEFDFB;border:1px solid #E2DED7;border-radius:20px;
+            padding:20px 20px 17px;position:relative;overflow:hidden;{_neo}">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:{top};"></div>
+  <div style="font-size:10px;font-weight:700;color:#9E9A94;text-transform:uppercase;
+              letter-spacing:.09em;margin-bottom:12px;margin-top:4px;">{label}</div>
+  <div style="font-size:34px;font-weight:800;color:#1C1B18;letter-spacing:-.04em;
+              font-variant-numeric:tabular-nums;line-height:1;">{val}{"" if not unit else f'<span style="font-size:13px;font-weight:400;color:#9E9A94;letter-spacing:.01em;margin-left:3px;">{unit}</span>'}</div>
 </div>"""
     st.html(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.3fr;gap:10px;margin-bottom:24px;">
-  {_card("#E3DED6","本次筛选",n,"份","","")}
-  {_card("#4ADE80","强推进",s_n,"","","")}
-  {_card("#FCD34D","待定",p_n,"","","")}
-  {_card("#FCA5A5","不推进",rej,"","","")}
-  <div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
-              padding:18px 18px 16px;position:relative;overflow:hidden;">
-    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#1A1714;
-                border-radius:14px 14px 0 0;"></div>
-    <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
-                letter-spacing:.08em;margin-bottom:10px;margin-top:2px;
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.3fr;gap:12px;margin-bottom:28px;">
+  {_card("#D6D0C8","本次筛选",n,"份")}
+  {_card("#4ADE80","强推进",s_n,"")}
+  {_card("#FCD34D","待定",p_n,"")}
+  {_card("#FCA5A5","不推进",rej,"")}
+  <div style="background:#FEFDFB;border:1px solid #E2DED7;border-radius:20px;
+              padding:20px 20px 17px;position:relative;overflow:hidden;{_neo}">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#6AADA0;"></div>
+    <div style="font-size:10px;font-weight:700;color:#9E9A94;text-transform:uppercase;
+                letter-spacing:.09em;margin-bottom:12px;margin-top:4px;
                 display:flex;align-items:center;gap:5px;">AI 自动处理
       <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;剩余待定 {p_n} 份需人工复核"
             style="display:inline-flex;align-items:center;justify-content:center;
                    width:14px;height:14px;border-radius:50%;border:1.5px solid #C4BCB2;
-                   color:#9E9994;font-size:9px;font-weight:700;cursor:default;">?</span>
+                   color:#9E9A94;font-size:9px;font-weight:700;cursor:default;">?</span>
     </div>
-    <div style="font-size:32px;font-weight:800;color:#1A1714;letter-spacing:-.04em;
-                font-variant-numeric:tabular-nums;line-height:1;">{auto}<span style="font-size:14px;font-weight:400;color:#9E9994;letter-spacing:0;margin-left:2px;">%</span></div>
-    <div style="font-size:11px;color:#9E9994;margin-top:6px;">目标 ≥ 80%</div>
+    <div style="font-size:34px;font-weight:800;color:#1C1B18;letter-spacing:-.04em;
+                font-variant-numeric:tabular-nums;line-height:1;">{auto}<span style="font-size:13px;font-weight:400;color:#9E9A94;letter-spacing:.01em;margin-left:3px;">%</span></div>
+    <div style="font-size:11px;color:#6AADA0;font-weight:600;margin-top:8px;">目标 ≥ 80%</div>
   </div>
 </div>""")
 
@@ -1009,8 +1021,9 @@ def render_screening():
         ratio_icon      = "✅" if ratio_ok else "⚠"
         ratio_note      = "达标 ≤8:1" if ratio_ok else "偏高，可上调强推阈值"
         st.html(f"""
-<div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
-            padding:16px 22px;margin-bottom:20px;
+<div style="background:#FEFDFB;border:1px solid #E2DED7;border-radius:20px;
+            padding:18px 24px;margin-bottom:22px;
+            box-shadow:4px 4px 10px rgba(28,23,20,.06),-2px -2px 6px rgba(255,255,255,.80);
             display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
   <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
               letter-spacing:.08em;white-space:nowrap;">全量推算</div>
@@ -1105,18 +1118,20 @@ def render_screening():
   {"<br/>覆盖原因：" + ov_data.get("note","") if ov_data.get("note") else ""}
 </div>"""
 
-        # 主卡片 HTML — white + left accent strip
+        # 主卡片 HTML — neumorphic + left accent strip
+        _neo_card = "4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82)"
+        _neo_hover = "6px 6px 18px rgba(28,23,20,.10),-3px -3px 10px rgba(255,255,255,.86)"
         st.html(f"""
-<div style="background:#FEFCF9;border-radius:14px;overflow:hidden;
-            box-shadow:0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04);
-            transition:box-shadow .26s cubic-bezier(0.34,1.56,0.64,1),
-                       transform .26s cubic-bezier(0.34,1.56,0.64,1);"
-     onmouseenter="this.style.boxShadow='0 4px 14px rgba(28,23,20,.10),0 2px 4px rgba(28,23,20,.06)';this.style.transform='translateY(-2px)'"
-     onmouseleave="this.style.boxShadow='0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04)';this.style.transform='translateY(0)'">
+<div style="background:#FEFDFB;border-radius:20px;overflow:hidden;
+            box-shadow:{_neo_card};
+            transition:box-shadow .28s cubic-bezier(0.34,1.56,0.64,1),
+                       transform .28s cubic-bezier(0.34,1.56,0.64,1);"
+     onmouseenter="this.style.boxShadow='{_neo_hover}';this.style.transform='translateY(-3px)'"
+     onmouseleave="this.style.boxShadow='{_neo_card}';this.style.transform='translateY(0)'">
   <div style="display:flex;height:100%;">
-    <div style="width:4px;flex-shrink:0;background:{cm['accent']};"></div>
-    <div style="flex:1;padding:20px 22px;border:1px solid #E3DED6;border-left:none;
-                border-radius:0 14px 14px 0;">
+    <div style="width:5px;flex-shrink:0;background:{cm['accent']};"></div>
+    <div style="flex:1;padding:22px 24px;border:1px solid #E2DED7;border-left:none;
+                border-radius:0 20px 20px 0;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px;">

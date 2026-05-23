@@ -1233,11 +1233,10 @@ def render_screening():
         in_pool = cid in pool_ids
         show_pool_btn = (final == "不推进")
 
-        # 列宽按实际内容分配，确保文字不被截断
         if show_pool_btn:
-            btn_cols = st.columns([5, 4, 4, 3])
+            btn_cols = st.columns(3)          # 三个等宽按钮
         else:
-            btn_cols = st.columns([5, 4, 7])
+            btn_cols = st.columns([1, 1, 2])  # 两个按钮 + 空白
 
         with btn_cols[0]:
             exp_txt = "▲ 收起理由" if is_expanded else "▼ 展开理由"

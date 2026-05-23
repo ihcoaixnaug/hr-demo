@@ -44,16 +44,19 @@ def has_api_key() -> bool:
 
 # ─── 维度提取（与 JD 任职要求一一对应） ───────────────────────────────────────
 
-def extract_dims_from_jd(jd: str, job_label: str = "") -> list | None:
+def extract_dims_from_jd(jd: str, job_label: str = "") -> tuple:
     """
     从 JD 的「任职要求」中提取评估维度，每条要求对应且仅对应一个维度。
-    返回格式：
-        [{"id": str, "label": str, "weight": int}, ...]
-    失败时返回 None，调用方回退到预设维度。
+
+    返回：(dims, error_msg)
+      - 成功：(list[dict], None)
+      - 失败：(None, str)  —— error_msg 可直接展示给用户
     """
+    import logging
+
     api_key = _api_key()
     if not api_key:
-        return None
+        return None, "未配置 API Key（OPENROUTER_API_KEY）"
 
     prompt = f"""你是一名 HR 规则构建助手。请从以下招聘 JD 中提取评估维度。
 
@@ -71,7 +74,7 @@ def extract_dims_from_jd(jd: str, job_label: str = "") -> list | None:
 5. 各维度权重初始设为相等（总计恰好 100%；若不能整除，将余数加到最后一个维度）
 6. 绝对禁止：不得合并多条要求为一个维度，不得凭空增加 JD 未写明的维度
 
-【输出格式 — 只输出 JSON，不要任何其他内容】
+【输出格式 — 只输出合法 JSON，不要任何解释或 markdown 代码块】
 {{
   "dims": [
     {{"id": "dim_id", "label": "维度名称", "weight": 25}},
@@ -92,35 +95,50 @@ def extract_dims_from_jd(jd: str, job_label: str = "") -> list | None:
                 "model": _model(),
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
-                "response_format": {"type": "json_object"},
+                # 不使用 response_format，直接依赖 prompt 控制输出格式，兼容性更好
             },
-            timeout=30,
+            timeout=45,
         )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-        data = json.loads(content)
+    except requests.exceptions.Timeout:
+        return None, "请求超时（>45s），请稍后重试"
+    except requests.exceptions.ConnectionError as e:
+        return None, f"网络连接失败：{e}"
 
-        dims = data.get("dims")
-        if not dims or not isinstance(dims, list):
-            return None
+    if not resp.ok:
+        return None, f"API 错误 {resp.status_code}：{resp.text[:300]}"
 
-        # 校验每个维度的必要字段
-        for d in dims:
-            if not all(k in d for k in ("id", "label", "weight")):
-                return None
+    try:
+        raw = resp.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, ValueError) as e:
+        return None, f"API 响应格式异常：{e}\n原始响应：{resp.text[:300]}"
 
-        # 确保权重总和 = 100（防模型输出误差）
-        total = sum(d["weight"] for d in dims)
-        if total != 100:
-            diff = 100 - total
-            dims[-1]["weight"] += diff
+    # 从可能含 markdown 代码块的响应中提取 JSON
+    text = raw.strip()
+    if "```" in text:
+        # 去掉 ```json ... ``` 包装
+        text = text.split("```")[-2] if text.count("```") >= 2 else text
+        text = text.lstrip("json").strip()
 
-        return dims
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        return None, f"JSON 解析失败：{e}\n模型原始输出：{raw[:400]}"
 
-    except Exception as e:
-        import logging
-        logging.warning(f"[智筛 LLM] 维度提取失败，回退预设: {e}")
-        return None
+    dims = data.get("dims")
+    if not dims or not isinstance(dims, list):
+        return None, f"模型返回结构缺少 'dims' 字段\n原始输出：{raw[:400]}"
+
+    for d in dims:
+        if not all(k in d for k in ("id", "label", "weight")):
+            return None, f"维度字段不完整（需要 id/label/weight）：{d}"
+
+    # 确保权重总和 = 100
+    total = sum(d["weight"] for d in dims)
+    if total != 100:
+        dims[-1]["weight"] += 100 - total
+
+    logging.info(f"[智筛 LLM] 维度提取成功，共 {len(dims)} 个维度")
+    return dims, None
 
 
 # ─── 简历评分 ─────────────────────────────────────────────────────────────────

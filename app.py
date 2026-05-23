@@ -416,7 +416,7 @@ def render_rule_builder():
         extracted = None
         if has_api_key():
             with st.spinner("AI 正在从 JD 任职要求提取评估维度…"):
-                extracted = extract_dims_from_jd(p["jd"], p["label"])
+                extracted, _err = extract_dims_from_jd(p["jd"], p["label"])
         dims = extracted if extracted else copy.deepcopy(p["dims"])
         st.session_state.editing_dims = dims
         for d in dims:
@@ -1085,14 +1085,14 @@ def render_verification():
     if st.button("🤖 AI 提取评估维度", key="verify_extract",
                  disabled=not jd_input.strip(), type="primary"):
         with st.spinner("AI 正在从任职要求中提取评估维度…"):
-            dims = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
+            dims, err = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
         if dims:
             st.session_state["verify_dims"] = dims
             for d in dims:
                 st.session_state[f"vw_{d['id']}"] = d["weight"]
             st.rerun()
         else:
-            st.error("维度提取失败，请确认 JD 中包含「任职要求」部分，或检查 API 配置。")
+            st.error(f"维度提取失败：{err}")
 
     verify_dims = st.session_state.get("verify_dims")
     if not verify_dims:

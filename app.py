@@ -510,10 +510,12 @@ def render_rule_builder():
                 with st.expander(f"📋 查看{jl_l} JD"):
                     st.code(preset_l["jd"], language=None)
             with _cb:
+                st.markdown('<div style="margin-top:5px;"></div>', unsafe_allow_html=True)
                 if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}"):
                     st.session_state.public_html = build_public_page_html(
                         dims_l, fp_l, at_l, jl_l)
             with _cc:
+                st.markdown('<div style="margin-top:5px;"></div>', unsafe_allow_html=True)
                 if st.button("🗑 清除规则", key=f"reset_job_{jk_l}"):
                     del st.session_state.locked_jobs[jk_l]
                     if st.session_state.active_job == jk_l:

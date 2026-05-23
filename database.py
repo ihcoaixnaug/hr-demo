@@ -70,6 +70,7 @@ def init_db():
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
             candidate_id   TEXT NOT NULL UNIQUE,
             from_job_label TEXT NOT NULL,
+            contacted      INTEGER NOT NULL DEFAULT 0,
             added_at       TEXT DEFAULT (datetime('now','localtime'))
         );
 
@@ -193,11 +194,24 @@ def remove_from_pool_db(candidate_id: str):
 
 def get_pool_db() -> list:
     with _conn() as con:
+        # 兼容旧库（contacted 列可能不存在）
+        try:
+            con.execute("ALTER TABLE talent_pool ADD COLUMN contacted INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
         rows = con.execute(
-            "SELECT candidate_id, from_job_label, added_at FROM talent_pool "
+            "SELECT candidate_id, from_job_label, contacted, added_at FROM talent_pool "
             "ORDER BY added_at DESC"
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def mark_pool_contacted(candidate_id: str, contacted: bool):
+    with _conn() as con:
+        con.execute(
+            "UPDATE talent_pool SET contacted = ? WHERE candidate_id = ?",
+            (1 if contacted else 0, candidate_id),
+        )
 
 
 # ─── 申诉记录 ─────────────────────────────────────────────────────────────────

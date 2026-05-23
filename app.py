@@ -12,7 +12,7 @@ from database import (
     init_db, save_rule,
     save_screening_result, get_screening_results,
     save_hr_override, get_hr_overrides,
-    add_to_pool_db, remove_from_pool_db, get_pool_db,
+    add_to_pool_db, remove_from_pool_db, get_pool_db, mark_pool_contacted,
     save_appeal, get_all_appeals, update_appeal_status,
 )
 from llm import screen_candidate_with_llm, extract_dims_from_jd, has_api_key
@@ -893,6 +893,7 @@ def render_screening():
                    color:#3b82f6;font-size:9px;font-weight:700;cursor:default;flex-shrink:0;">?</span>
     </div>
     <div style="font-size:28px;font-weight:800;color:#1e40af;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
+    <div style="font-size:11px;color:#93c5fd;margin-top:4px;">系统设计目标 ≥ 80%</div>
   </div>
 </div>""")
 
@@ -1386,7 +1387,7 @@ def render_screening():
 # ─── 候选人视图结论文案（对候选人友好，不用 HR 术语）────────────────────────
 _CV_RESULT = {
     "强推进面试": ("✅", "恭喜！您已进入面试流程",     "#166534", "#f0fdf4", "#dcfce7", "#16a34a"),
-    "待定":      ("⏳", "初审通过，等待后续安排",        "#92400e", "#fffbeb", "#fef3c7", "#d97706"),
+    "待定":      ("⏳", "已收到您的申请，HR 复核中",       "#92400e", "#fffbeb", "#fef3c7", "#d97706"),
     "不推进":    ("❌", "很遗憾，本次未入选",            "#991b1b", "#fef2f2", "#fee2e2", "#dc2626"),
 }
 
@@ -1486,14 +1487,23 @@ def render_candidate_view():
     }
     if sel in NOTES:
         st.html(f"""
-<div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
-            border:1px solid #bfdbfe;border-radius:14px;
-            padding:12px 18px;margin-bottom:12px;
-            font-size:13px;color:#1e40af;line-height:1.65;">
-  <span style="font-size:14px;">💡</span>
-  <strong style="margin-left:4px;">演示说明</strong> —
-  {NOTES[sel]}
-</div>""")
+<details style="margin-bottom:12px;">
+  <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;
+                  background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+                  padding:8px 14px;font-size:12px;font-weight:600;color:#475569;
+                  user-select:none;">
+    <span style="background:#374151;color:#fff;border-radius:4px;
+                 padding:1px 6px;font-size:10px;letter-spacing:.04em;margin-right:2px;">
+      HR 演示视角
+    </span>
+    点击展开演示说明 · 候选人不可见
+  </summary>
+  <div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
+              border:1px solid #bfdbfe;border-radius:0 0 10px 10px;
+              padding:12px 18px;font-size:13px;color:#1e40af;line-height:1.65;">
+    💡 {NOTES[sel]}
+  </div>
+</details>""")
 
     # 维度通过/未通过行（阈值与进度条颜色对齐：≥65 蓝/绿=符合，50–64 黄=基本符合，<50 红=有待提升）
     # 兜底：若当前 dim ID 在 scores 里查不到（历史数据 key 不匹配），按位置回退到预设分数
@@ -1873,30 +1883,48 @@ def render_pool_view():
             continue
         jl    = entry["from_job_label"]
 
+        contacted = bool(entry.get("contacted", 0))
+        contact_bg     = "#f0fdf4" if contacted else "white"
+        contact_border = "#86efac" if contacted else "#e5e7eb"
+        contact_badge  = (
+            '<span style="background:#dcfce7;color:#166534;border-radius:999px;'
+            'padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;">✅ 已联系</span>'
+            if contacted else ""
+        )
         st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:16px;margin-bottom:8px;">
+<div style="background:{contact_bg};border:1px solid {contact_border};border-radius:12px;
+            padding:16px;margin-bottom:8px;transition:all .2s;">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
     <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
         <span style="font-size:15px;font-weight:700;color:#111827;">{cand["name"]}</span>
         <span style="background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;
                      border-radius:999px;padding:2px 8px;font-size:12px;">{cand["school"]}</span>
         {_tag(cand["tag"])}
+        {contact_badge}
       </div>
       <p style="font-size:13px;color:#6b7280;line-height:1.5;margin:0 0 8px;">{cand["summary"]}</p>
       <div style="font-size:12px;color:#9ca3af;">
         来源岗位：<span style="color:#374151;font-weight:500;">{jl}</span>
-        <span style="color:#ef4444;margin-left:6px;">· 未通过</span>
+        <span style="color:#ef4444;margin-left:6px;">· 未通过本岗位初筛</span>
       </div>
     </div>
   </div>
 </div>""")
 
-        if st.button("移出备选池", key=f"rm_{cid}"):
-            remove_from_pool_db(cid)
-            _sync_pool()
-            st.rerun()
+        _a, _b, _ = st.columns([2, 2, 6])
+        with _a:
+            label = "✅ 已联系" if contacted else "📧 标记已联系"
+            if st.button(label, key=f"contact_{cid}", use_container_width=True,
+                         type="primary" if not contacted else "secondary"):
+                mark_pool_contacted(cid, not contacted)
+                _sync_pool()
+                st.rerun()
+        with _b:
+            if st.button("移出备选池", key=f"rm_{cid}", use_container_width=True):
+                remove_from_pool_db(cid)
+                _sync_pool()
+                st.rerun()
 
         st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
@@ -2097,11 +2125,10 @@ _pending_appeals = len([a for a in get_all_appeals()
                         if a.get("status", "pending") == "pending"])
 _appeal_tab_label = f"📊 筛选工作台{'  ' + str(_pending_appeals) if _pending_appeals else ''}"
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "🏗 规则构建",
     _appeal_tab_label,
     "👤 候选人视图",
-    "🔍 规则验证",
     "📦 简历备选池",
 ])
 
@@ -2112,8 +2139,6 @@ with tab2:
 with tab3:
     render_candidate_view()
 with tab4:
-    render_verification()
-with tab5:
     render_pool_view()
 
 # ── 申诉输入框实时字数计数器（JS注入父文档）─────────────────────────────────────

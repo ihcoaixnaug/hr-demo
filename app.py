@@ -94,6 +94,7 @@ header[data-testid="stHeader"]{display:none!important;}
   color:#374151!important;background:white!important;
   box-shadow:0 1px 2px rgba(0,0,0,.05)!important;
   transition:all .12s!important;
+  white-space:nowrap!important;
 }
 .stButton>button:hover:not(:disabled){
   border-color:#93c5fd!important;

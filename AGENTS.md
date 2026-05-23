@@ -223,4 +223,48 @@ curl https://openrouter.ai/api/v1/models \
 
 ---
 
+### Bug 5 — Header logo 不可见（已修复，commit `ba8e89c`）
+
+**现象**：「智筛 AI」logo 那一行在页面上完全看不见。
+
+**根因**：`render_header()` 使用 `st.markdown()` 渲染嵌套 flex div，同 Bug 2 一样被 markdown 解析器破坏，导致整个 header div 高度坍缩为 0 或内容不可见。
+
+**修复**：`render_header()` 改用 `st.html()`，header 设计为白色卡片样式（含 gradient logo icon + 阴影），脱离 Streamlit 原生 header 布局。
+
+---
+
+### Bug 6 — 岗位选择需两步点击（已修复，commit `ba8e89c`）
+
+**现象**：规则构建页有 HTML 卡片（不可点击）+ 独立「选择XX岗」按钮两个元素，用户需要点击按钮才能加载，不符合 demo.html 的单击卡片体验。
+
+**根因**：初始实现用 `st.markdown(_job_card())` 渲染视觉卡片，再加 `st.button("选择...岗")` 触发逻辑，两者分离。
+
+**修复**：移除 HTML 卡片和 `_job_card()` 函数，改为 `st.button(f"🎯 产品经理实习生", type="primary"/"secondary")` + `st.caption()` 描述。选中态用 `type="primary"` 高亮，直接点击按钮即触发加载维度逻辑。
+
+---
+
+## UI 设计规范（Streamlit 版）
+
+### 渲染方式
+
+| 内容类型 | 用法 |
+|---------|------|
+| 纯文本、简单 inline HTML | `st.markdown(unsafe_allow_html=True)` |
+| 含嵌套 flex/grid 的复杂 HTML 块 | **必须用 `st.html()`** |
+| 互动元素（按钮、输入框等）| Streamlit 原生控件 |
+
+### 颜色规范
+
+| 用途 | 值 |
+|-----|-----|
+| 主色（按钮 primary）| 渐变 `#1d4ed8 → #111827` |
+| 背景 | `#f3f4f6` |
+| 卡片背景 | `white` |
+| 边框 | `#e5e7eb` |
+| 文字主色 | `#111827` |
+| 文字次色 | `#6b7280` |
+| 文字占位 | `#9ca3af` |
+
+---
+
 *最后更新：2026-05-23*

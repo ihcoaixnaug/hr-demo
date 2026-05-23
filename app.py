@@ -153,11 +153,13 @@ header[data-testid="stHeader"]{display:none!important;}
 }
 .stButton>button[kind="primary"]:hover:not(:disabled){
   background:var(--mint-dark)!important;
+  color:#fff!important;
   box-shadow:0 6px 22px rgba(106,173,160,.40),0 2px 6px rgba(106,173,160,.22)!important;
   transform:translateY(-2px) scale(1.01)!important;
 }
 .stButton>button[kind="primary"]:active:not(:disabled){
   transform:translateY(0) scale(.97)!important;
+  color:#fff!important;
   box-shadow:0 1px 4px rgba(106,173,160,.25)!important;
 }
 

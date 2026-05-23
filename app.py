@@ -387,7 +387,7 @@ def _preset_mode_banner() -> str:
 
 
 # ─── 简历弹窗（Dialog） ────────────────────────────────────────────────────────
-@st.dialog("📄 原始简历", width="large")
+@st.dialog("📄 原始简历", width="small")
 def _resume_dialog(cand: dict):
     resume = cand["resume"]
     st.markdown(

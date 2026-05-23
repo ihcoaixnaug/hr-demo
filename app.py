@@ -55,6 +55,8 @@ header[data-testid="stHeader"]{display:none!important;}
   gap:2px!important;
   box-shadow:0 1px 4px rgba(0,0,0,.07),0 0 0 0 transparent!important;
   margin-bottom:6px!important;
+  display:flex!important;
+  width:100%!important;
 }
 .stTabs [data-baseweb="tab"]{
   background:transparent!important;
@@ -66,6 +68,9 @@ header[data-testid="stHeader"]{display:none!important;}
   margin:0!important;
   transition:all .18s ease!important;
   white-space:nowrap!important;
+  flex:1!important;
+  justify-content:center!important;
+  display:flex!important;
 }
 .stTabs [aria-selected="true"]{
   color:#1d4ed8!important;
@@ -909,10 +914,15 @@ def render_screening():
   </div>
 </div>""")
 
-    # ── 候选人结果卡片 ────────────────────────────────────────────────────────
+    # ── 候选人结果卡片（按综合得分从高到低排列）─────────────────────────────
     pool_ids = [p["candidate_id"] for p in st.session_state.pool]
+    job_c_sorted = sorted(
+        [c for c in job_c if c["id"] in results],
+        key=lambda c: weighted_score(results[c["id"]]["scores"], dims),
+        reverse=True,
+    )
 
-    for cand in job_c:
+    for cand in job_c_sorted:
         cid = cand["id"]
         if cid not in results:
             continue
@@ -1345,6 +1355,30 @@ def render_candidate_view():
     jl              = JOB_PRESETS[cand["job"]]["label"]
     display_fp      = fp if fp else rule_fingerprint(display_dims)
 
+    # ── 演示说明（卡片上方）──────────────────────────────────────────────────
+    NOTES = {
+        "A": "王芳（复旦 985 · 本科），有完整产品主导经历和数据分析能力，强推进。展示系统对强势候选人同样公平评估。",
+        "B": "陈志远（深圳大学 · 双非 · 本科），项目主导经验与复旦王芳相当，同样强推进。核心论点：双非本科凭实力 = 985。",
+        "C": "张浩然（北大 985 · 硕士），高学历、工具能力强，但缺乏产品主导经历，评为待定。说明：硕士学历不等于产品能力。",
+        "D": "李思琪（浙大 985 · 博士），SCI 论文 3 篇，但零产品经历，不推进。最强反直觉案例：985 博士被系统拒绝。",
+        "E": "刘晓晨（职校 · 大专），能力确实不达标，不推进。关键：系统不因职校背景歧视，但也不因此降低评分标准。",
+        "F": "吴佳琪（杭电 · 双非 · 本科），开源贡献和实习经验过硬，强推进。双非本科在技术维度完胜多位 985。",
+        "G": "赵明远（南大 985 · 硕士），跨职能协作能力最强，但字节实习仅停留在功能接入层，编码深度不足，评为待定。说明：名校硕士+大厂实习 ≠ 技术能力自动达标。",
+        "H": "林浩宇（华科 985 · 本科），课程 CRUD 项目为主，实习为测试岗，无独立后端项目，不推进。关键：985 光环无法弥补工程能力空白。",
+        "I": "周晓敏（清华 985 · 博士 · ACM 金牌），但方向是控制理论，零后端工程经验，不推进。最大反转：清华博士+竞赛金牌被系统拒绝，因为与岗位不匹配。",
+        "J": "郑凯文（无大学学历 · 高中 · 自学），4 年自学后端，GitHub 开源项目 1200+ stars，2 年全职工作经验，强推进。终极论点：系统只看岗位相关能力，无学历者凭实力击败清华博士。",
+    }
+    if sel in NOTES:
+        st.html(f"""
+<div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
+            border:1px solid #bfdbfe;border-radius:14px;
+            padding:12px 18px;margin-bottom:12px;
+            font-size:13px;color:#1e40af;line-height:1.65;">
+  <span style="font-size:14px;">💡</span>
+  <strong style="margin-left:4px;">演示说明</strong> —
+  {NOTES[sel]}
+</div>""")
+
     # 维度通过/未通过行
     dim_rows = ""
     for d in display_dims:
@@ -1682,29 +1716,6 @@ def render_candidate_view():
             st.session_state[ao_key] = True
             st.rerun()
 
-    # 演示说明
-    NOTES = {
-        "A": "王芳（复旦 985 · 本科），有完整产品主导经历和数据分析能力，强推进。展示系统对强势候选人同样公平评估。",
-        "B": "陈志远（深圳大学 · 双非 · 本科），项目主导经验与复旦王芳相当，同样强推进。核心论点：双非本科凭实力 = 985。",
-        "C": "张浩然（北大 985 · 硕士），高学历、工具能力强，但缺乏产品主导经历，评为待定。说明：硕士学历不等于产品能力。",
-        "D": "李思琪（浙大 985 · 博士），SCI 论文 3 篇，但零产品经历，不推进。最强反直觉案例：985 博士被系统拒绝。",
-        "E": "刘晓晨（职校 · 大专），能力确实不达标，不推进。关键：系统不因职校背景歧视，但也不因此降低评分标准。",
-        "F": "吴佳琪（杭电 · 双非 · 本科），开源贡献和实习经验过硬，强推进。双非本科在技术维度完胜多位 985。",
-        "G": "赵明远（南大 985 · 硕士），跨职能协作能力最强，但字节实习仅停留在功能接入层，编码深度不足，评为待定。说明：名校硕士+大厂实习 ≠ 技术能力自动达标。",
-        "H": "林浩宇（华科 985 · 本科），课程 CRUD 项目为主，实习为测试岗，无独立后端项目，不推进。关键：985 光环无法弥补工程能力空白。",
-        "I": "周晓敏（清华 985 · 博士 · ACM 金牌），但方向是控制理论，零后端工程经验，不推进。\n最大反转：清华博士+竞赛金牌被系统拒绝，因为与岗位不匹配。",
-        "J": "郑凯文（无大学学历 · 高中 · 自学），4 年自学后端，GitHub 开源项目 1200+ stars，2 年全职工作经验，强推进。\n终极论点：系统只看岗位相关能力，无学历者凭实力击败清华博士。",
-    }
-    if sel in NOTES:
-        st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)
-        st.html(f"""
-<div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
-            border:1px solid #bfdbfe;border-radius:14px;
-            padding:14px 18px;font-size:13px;color:#1e40af;line-height:1.65;">
-  <span style="font-size:14px;">💡</span>
-  <strong style="margin-left:4px;">演示说明</strong> —
-  {NOTES[sel]}
-</div>""")
 
 
 # ─── Page 4：简历备选池 ───────────────────────────────────────────────────────
@@ -1988,6 +1999,47 @@ with tab4:
     render_verification()
 with tab5:
     render_pool_view()
+
+# ── 申诉输入框实时字数计数器（JS注入父文档）─────────────────────────────────────
+st.components.v1.html("""
+<script>
+(function() {
+  var MIN = 30;
+  var doc = window.parent ? window.parent.document : document;
+
+  function attachCounters() {
+    doc.querySelectorAll('[data-testid="stTextArea"]').forEach(function(wrapper) {
+      var label = wrapper.querySelector('label');
+      if (!label || !label.textContent.includes('补充说明')) return;
+      if (wrapper.querySelector('.ap-char-counter')) return;
+
+      var ta = wrapper.querySelector('textarea');
+      if (!ta) return;
+
+      var counter = doc.createElement('div');
+      counter.className = 'ap-char-counter';
+      counter.style.cssText = [
+        'font-size:11px', 'text-align:right', 'margin-top:4px',
+        'margin-bottom:6px', 'padding-right:2px', 'font-variant-numeric:tabular-nums'
+      ].join(';');
+      wrapper.appendChild(counter);
+
+      function update() {
+        var n = ta.value.trim().length;
+        counter.textContent = n + ' / ' + MIN + ' 字';
+        counter.style.color = n >= MIN ? '#16a34a' : n > 0 ? '#d97706' : '#9ca3af';
+        counter.style.fontWeight = n >= MIN ? '600' : '400';
+      }
+      ta.addEventListener('input', update);
+      update();
+    });
+  }
+
+  attachCounters();
+  new MutationObserver(attachCounters).observe(doc.body, { childList: true, subtree: true });
+})();
+</script>
+""", height=0)
 
 # ── 悬浮置顶按钮 ────────────────────────────────────────────────────────────────
 # 原理：通过 window.frameElement 拿到 iframe 自身在父文档中的 DOM 节点，

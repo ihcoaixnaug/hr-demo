@@ -252,20 +252,21 @@ hr{border:none!important;border-top:1px solid #f0f0f0!important;margin:8px 0!imp
 # ─── Session State 初始化 ─────────────────────────────────────────────────────
 def _init():
     defs = {
+        # ─ 多岗位锁定状态 ──────────────────────────────────────────────────────
+        "locked_jobs":       {},    # {job_key: {dims, fingerprint, locked_at, rule_id, label}}
+        "active_job":        None,  # 筛选工作台当前查看的岗位 key
+        # ─ 规则构建（构建中状态）───────────────────────────────────────────────
         "selected_job":      None,
-        "rule_locked":       False,
-        "locked_dims":       None,
-        "fingerprint":       "",
-        "locked_at":         "",
-        "rule_id":           None,
         "editing_dims":      None,
+        # ─ 筛选结果（候选人 ID 全局唯一，无需按岗位分桶）────────────────────────
         "screening_results": {},
         "overrides":         {},
+        "selected_cands":    [],
+        # ─ 其他 ──────────────────────────────────────────────────────────────
         "pool":              [],
         "appeal_submitted":  set(),
         "public_html":       "",
-        "hiring_target":     120,   # 计划招聘人数（可在筛选工作台调整）
-        "selected_cands":    [],
+        "hiring_target":     120,
         "goto_tab":          -1,
         "cv_selected":       "B",
     }
@@ -336,7 +337,7 @@ def _bars(scores: dict, dims: list) -> str:
             bar_color = "linear-gradient(to right,#f87171,#ef4444)"
             num_color = "#dc2626"
         rows.append(f"""
-<div style="display:grid;grid-template-columns:minmax(5rem,max-content) 1fr 2.2rem;gap:8px;
+<div style="display:grid;grid-template-columns:8rem 1fr 2.2rem;gap:8px;
             align-items:center;margin-bottom:7px;">
   <span style="font-size:12px;color:#6b7280;white-space:nowrap;">
     {d["label"]}<span style="color:#d1d5db;font-size:11px;margin-left:3px;">{d["weight"]}%</span>
@@ -385,16 +386,40 @@ def _preset_mode_banner() -> str:
 </div>"""
 
 
+# ─── 简历弹窗（Dialog） ────────────────────────────────────────────────────────
+@st.dialog("📄 原始简历", width="large")
+def _resume_dialog(cand: dict):
+    resume = cand["resume"]
+    st.markdown(
+        f"**{cand['name']}** &nbsp;·&nbsp; {cand['school']} &nbsp;·&nbsp; "
+        f"{cand['major']} &nbsp;·&nbsp; {cand['tag']}"
+    )
+    st.caption(f"GPA {resume.get('gpa','—')} · {resume.get('period','')}")
+    st.divider()
+    for exp in resume.get("experiences", []):
+        c_et, c_ep = st.columns([3, 1])
+        with c_et:
+            st.markdown(f"**{exp['title']}**")
+            st.caption(exp["org"])
+        with c_ep:
+            st.caption(exp["period"])
+        for b in exp.get("bullets", []):
+            st.markdown(f"&nbsp;&nbsp;· {b}")
+        st.markdown("")
+    st.markdown(f"🛠 **技能** {resume.get('skills','')}")
+    aw = resume.get("awards", "")
+    if aw and aw != "无":
+        st.markdown(f"🏆 **奖项** {aw}")
+
+
 # ─── Header ───────────────────────────────────────────────────────────────────
 def render_header():
     badges_html = ""
-    if st.session_state.rule_locked:
-        jk = st.session_state.selected_job
-        jl = JOB_PRESETS[jk]["label"] if jk else "自定义"
+    for _jk, _js in st.session_state.locked_jobs.items():
         badges_html += (
             f'<span style="background:#111827;color:#fff;border-radius:999px;'
             f'padding:3px 10px;font-size:12px;margin-left:8px;">'
-            f'🔒 {jl} · 规则已锁定</span>'
+            f'🔒 {_js["label"]}</span>'
         )
     pn = len(st.session_state.pool)
     if pn:
@@ -435,70 +460,42 @@ def render_header():
 
 # ─── Page 1：规则构建 ─────────────────────────────────────────────────────────
 def render_rule_builder():
-    locked = st.session_state.rule_locked
+    locked_jobs = st.session_state.locked_jobs
 
-    # ══ 已锁定态 ══════════════════════════════════════════════════════════════
-    if locked:
-        dims      = st.session_state.locked_dims
-        fp        = st.session_state.fingerprint
-        at        = st.session_state.locked_at
-        jk        = st.session_state.selected_job
-        jl        = JOB_PRESETS[jk]["label"] if jk else "自定义岗位"
-
-        # 当前岗位小条
-        st.markdown(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-  <div style="width:8px;height:8px;border-radius:999px;background:#3b82f6;"></div>
-  <span style="font-size:14px;font-weight:600;color:#111827;">{jl}</span>
-  <span style="font-size:13px;color:#9ca3af;">当前筛选岗位</span>
-</div>
-""", unsafe_allow_html=True)
-
-        # 维度卡片
-        with st.container(border=True):
-            col_t, col_total = st.columns([4, 1])
-            with col_t:
-                st.markdown('<span style="font-size:14px;font-weight:600;color:#374151;">评估维度与权重</span>', unsafe_allow_html=True)
-            with col_total:
-                st.markdown('<span style="background:#dcfce7;color:#166534;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;">总计 100%</span>', unsafe_allow_html=True)
-            for d in dims:
-                c1, c2 = st.columns([5, 1])
-                with c1:
-                    st.markdown(f'<span style="font-size:14px;color:#374151;">{d["label"]}</span>', unsafe_allow_html=True)
-                    st.progress(d["weight"] / 100)
-                with c2:
-                    st.markdown(f'<div style="font-family:monospace;font-size:14px;color:#6b7280;text-align:right;margin-top:18px;">{d["weight"]}%</div>', unsafe_allow_html=True)
-
-        # 深色锁定卡
-        dim_chips = "".join(
-            f'<span style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);'
-            f'border-radius:8px;padding:3px 10px;font-size:12px;color:#e5e7eb;'
-            f'font-weight:500;margin-right:6px;margin-bottom:6px;display:inline-block;">'
-            f'{d["label"]} <span style="color:#6ee7b7;font-weight:700;">{d["weight"]}%</span></span>'
-            for d in dims
-        )
-        st.markdown(f"""
+    # ══ 已锁定岗位卡片区 ════════════════════════════════════════════════════════
+    if locked_jobs:
+        for jk_l, js in locked_jobs.items():
+            preset_l = JOB_PRESETS[jk_l]
+            jl_l = js["label"]
+            fp_l = js["fingerprint"]
+            at_l = js["locked_at"]
+            dims_l = js["dims"]
+            dim_chips = "".join(
+                f'<span style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);'
+                f'border-radius:8px;padding:3px 10px;font-size:12px;color:#e5e7eb;'
+                f'font-weight:500;margin-right:6px;margin-bottom:6px;display:inline-block;">'
+                f'{d["label"]} <span style="color:#6ee7b7;font-weight:700;">{d["weight"]}%</span></span>'
+                for d in dims_l
+            )
+            st.markdown(f"""
 <div style="background:linear-gradient(160deg,#111827 0%,#1e1b4b 100%);
-            border-radius:18px;padding:22px 24px;color:white;margin-top:10px;
+            border-radius:18px;padding:22px 24px;color:white;margin-bottom:0;
             box-shadow:0 4px 20px rgba(17,24,39,.35);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
     <span style="font-size:16px;">🔒</span>
-    <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">规则已锁定 · 不可修改</span>
+    <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">{jl_l} · 规则已锁定 · 不可修改</span>
   </div>
-  <p style="font-size:12px;color:#9ca3af;margin:0 0 18px;">锁定时间：{at}</p>
-
+  <p style="font-size:12px;color:#9ca3af;margin:0 0 18px;">锁定时间：{at_l}</p>
   <div style="background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);
               border-radius:12px;padding:16px 18px;margin-bottom:16px;">
     <p style="font-size:11px;color:#6b7280;margin:0 0 8px;text-transform:uppercase;
                letter-spacing:.06em;font-weight:600;">RULE HASH · 规则指纹</p>
     <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:26px;
-                 color:#6ee7b7;font-weight:900;letter-spacing:.2em;">{fp}</span>
+                 color:#6ee7b7;font-weight:900;letter-spacing:.2em;">{fp_l}</span>
     <p style="font-size:11.5px;color:#6b7280;margin:8px 0 0;line-height:1.5;">
       规则内容改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
     </p>
   </div>
-
   <div style="font-size:12px;color:#93c5fd;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
     <span>🔗</span>
     <span>规则已同步公示页，候选人收到的投递确认邮件含本指纹</span>
@@ -507,30 +504,24 @@ def render_rule_builder():
 </div>
 """, unsafe_allow_html=True)
 
-        st.markdown("<br/>", unsafe_allow_html=True)
-        c_reset, c_hint = st.columns(2)
-        with c_reset:
-            if st.button("🔄 重新设置规则", key="reset_rule"):
-                for k in ("rule_locked","locked_dims","fingerprint","locked_at",
-                          "selected_job","editing_dims","screening_results",
-                          "overrides","rule_id","public_html","selected_cands"):
-                    st.session_state[k] = {
-                        "rule_locked": False, "locked_dims": None,
-                        "fingerprint": "", "locked_at": "", "selected_job": None,
-                        "editing_dims": None, "screening_results": {},
-                        "overrides": {}, "rule_id": None, "public_html": "",
-                        "selected_cands": [],
-                    }[k]
-                st.rerun()
-        with c_hint:
-            st.html("""<div style="padding:8px 0;font-size:13px;color:#6b7280;">
-  👆 点击顶部 <strong style="color:#1d4ed8;">「📊 筛选工作台」</strong> 标签开始筛选
-</div>""")
+            _ca, _cb, _cc = st.columns([4, 4, 2])
+            with _ca:
+                with st.expander(f"📋 查看{jl_l} JD"):
+                    st.code(preset_l["jd"], language=None)
+            with _cb:
+                if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}"):
+                    st.session_state.public_html = build_public_page_html(
+                        dims_l, fp_l, at_l, jl_l)
+            with _cc:
+                if st.button("🗑 清除规则", key=f"reset_job_{jk_l}"):
+                    del st.session_state.locked_jobs[jk_l]
+                    if st.session_state.active_job == jk_l:
+                        st.session_state.active_job = None
+                    st.session_state.selected_job  = None
+                    st.session_state.editing_dims  = None
+                    st.rerun()
+            st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
 
-        # 公示页
-        st.markdown("---")
-        if st.button("📄 查看规则公示页", key="open_pub_locked"):
-            st.session_state.public_html = build_public_page_html(dims, fp, at, jl)
         if st.session_state.public_html:
             with st.expander("规则公示页预览", expanded=True):
                 st.download_button(
@@ -539,9 +530,16 @@ def render_rule_builder():
                     file_name="rule_public_page.html", mime="text/html",
                 )
                 st.components.v1.html(st.session_state.public_html, height=460, scrolling=True)
-        return
 
-    # ══ 未锁定态 ══════════════════════════════════════════════════════════════
+        if len(locked_jobs) >= len(JOB_PRESETS):
+            st.html('<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;'
+                    'padding:14px 18px;font-size:13px;color:#166534;text-align:center;margin-top:4px;">'
+                    '✅ 所有岗位规则均已锁定，前往「📊 筛选工作台」按岗位切换处理。</div>')
+            return
+
+        st.markdown("---")
+
+    # ══ 规则构建 UI ══════════════════════════════════════════════════════════
     st.html(f"""
 <div style="margin-bottom:20px;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
@@ -578,22 +576,26 @@ def render_rule_builder():
     with c1:
         pm = JOB_PRESETS["pm"]
         pm_sel = st.session_state.selected_job == "pm"
+        pm_done = "pm" in locked_jobs
         if st.button(
-            f"🎯  {pm['label']}",
+            f"🎯  {pm['label']}" + (" ✓ 已锁定" if pm_done else ""),
             key="sel_pm",
             use_container_width=True,
             type="primary" if pm_sel else "secondary",
+            disabled=pm_done,
         ):
             _load_job("pm")
         st.caption(pm["desc"])
     with c2:
         dev = JOB_PRESETS["dev"]
         dev_sel = st.session_state.selected_job == "dev"
+        dev_done = "dev" in locked_jobs
         if st.button(
-            f"⚙️  {dev['label']}",
+            f"⚙️  {dev['label']}" + (" ✓ 已锁定" if dev_done else ""),
             key="sel_dev",
             use_container_width=True,
             type="primary" if dev_sel else "secondary",
+            disabled=dev_done,
         ):
             _load_job("dev")
         st.caption(dev["desc"])
@@ -656,23 +658,26 @@ def render_rule_builder():
         fp  = rule_fingerprint(new_dims)
         at  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         rid = save_rule(jk, preset["label"], new_dims, fp, at)
-        st.session_state.rule_locked = True
-        st.session_state.locked_dims = new_dims
-        st.session_state.fingerprint = fp
-        st.session_state.locked_at   = at
-        st.session_state.rule_id     = rid
-        st.session_state.public_html = ""
+        st.session_state.locked_jobs[jk] = {
+            "dims":        new_dims,
+            "fingerprint": fp,
+            "locked_at":   at,
+            "rule_id":     rid,
+            "label":       preset["label"],
+        }
+        st.session_state.active_job   = jk
+        st.session_state.selected_job = None
+        st.session_state.editing_dims = None
+        st.session_state.public_html  = ""
         st.rerun()
 
 
 # ─── Page 2：筛选工作台 ───────────────────────────────────────────────────────
 def render_screening():
-    dims    = st.session_state.locked_dims
-    jk      = st.session_state.selected_job
-    rule_id = st.session_state.rule_id
-    results = st.session_state.screening_results
+    locked_jobs = st.session_state.locked_jobs
+    results     = st.session_state.screening_results
 
-    if not st.session_state.rule_locked or not dims or not jk:
+    if not locked_jobs:
         st.html("""
 <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;
             padding:56px 40px;text-align:center;
@@ -683,6 +688,31 @@ def render_screening():
 </div>""")
         return
 
+    # ── 多岗位切换 ──────────────────────────────────────────────────────────
+    if len(locked_jobs) > 1:
+        st.html('<p style="font-size:13px;font-weight:600;color:#374151;margin:0 0 8px;">选择筛选岗位</p>')
+        _job_cols = st.columns(len(locked_jobs))
+        for _i, (_jk, _js) in enumerate(locked_jobs.items()):
+            with _job_cols[_i]:
+                _active = st.session_state.active_job == _jk
+                if st.button(
+                    ("▶ " if _active else "") + _js["label"],
+                    key=f"sw_job_{_jk}",
+                    type="primary" if _active else "secondary",
+                    use_container_width=True,
+                ):
+                    st.session_state.active_job     = _jk
+                    st.session_state.selected_cands = []
+                    st.rerun()
+
+    # ── 确保 active_job 有效 ─────────────────────────────────────────────
+    if not st.session_state.active_job or st.session_state.active_job not in locked_jobs:
+        st.session_state.active_job = list(locked_jobs.keys())[0]
+
+    jk      = st.session_state.active_job
+    js      = locked_jobs[jk]
+    dims    = js["dims"]
+    rule_id = js["rule_id"]
     preset  = JOB_PRESETS[jk]
     job_c   = [c for c in CANDIDATES if c["job"] == jk]
 
@@ -824,7 +854,7 @@ def render_screening():
                 "计划招聘人数",
                 min_value=1, max_value=5000,
                 value=st.session_state.hiring_target,
-                step=10,
+                step=1,
                 key="hiring_target_input",
                 help="用于计算「到面录取比」= 预计进入面试人数 / 计划招聘人数",
             )
@@ -978,7 +1008,6 @@ def render_screening():
 
         # ── 操作行 ────────────────────────────────────────────────────────────
         exp_key = f"exp_{cid}"
-        res_key = f"res_{cid}"
         is_expanded = st.session_state.get(exp_key, False)
         in_pool = cid in pool_ids
         show_pool_btn = (final == "不推进")
@@ -996,8 +1025,7 @@ def render_screening():
                 st.rerun()
         with btn_cols[1]:
             if st.button("📄 原始简历", key=f"btn_res_{cid}", use_container_width=True):
-                st.session_state[res_key] = not st.session_state.get(res_key, False)
-                st.rerun()
+                _resume_dialog(cand)
         if show_pool_btn:
             with btn_cols[2]:
                 if not in_pool:
@@ -1101,31 +1129,6 @@ def render_screening():
                         st.session_state.pop(f"ov_pending_{cid}", None)
                         st.toast("已撤销 HR 覆盖，恢复 AI 建议", icon="↩")
                         st.rerun()
-
-        # 简历弹窗（Expander 模拟）
-        if st.session_state.get(res_key):
-            resume = cand["resume"]
-            with st.expander(f"📄 {cand['name']} 的原始简历", expanded=True):
-                st.markdown(
-                    f"**{cand['name']}** &nbsp;·&nbsp; {cand['school']} &nbsp;·&nbsp; "
-                    f"{cand['major']} &nbsp;·&nbsp; {cand['tag']}"
-                )
-                st.caption(f"GPA {resume.get('gpa','—')} · {resume.get('period','')}")
-                st.divider()
-                for exp in resume.get("experiences", []):
-                    c_et, c_ep = st.columns([3, 1])
-                    with c_et:
-                        st.markdown(f"**{exp['title']}**")
-                        st.caption(exp["org"])
-                    with c_ep:
-                        st.caption(exp["period"])
-                    for b in exp.get("bullets", []):
-                        st.markdown(f"&nbsp;&nbsp;· {b}")
-                    st.markdown("")
-                st.markdown(f"🛠 **技能** {resume.get('skills','')}")
-                aw = resume.get("awards","")
-                if aw and aw != "无":
-                    st.markdown(f"🏆 **奖项** {aw}")
 
         # 卡片间隔
         st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
@@ -1291,12 +1294,17 @@ def render_screening():
 </div>""")
 
 
+# ─── 候选人视图结论文案（对候选人友好，不用 HR 术语）────────────────────────
+_CV_RESULT = {
+    "强推进面试": ("✅", "恭喜！您已进入面试流程",     "#166534", "#f0fdf4", "#dcfce7", "#16a34a"),
+    "待定":      ("⏳", "初审通过，等待后续安排",        "#92400e", "#fffbeb", "#fef3c7", "#d97706"),
+    "不推进":    ("❌", "很遗憾，本次未入选",            "#991b1b", "#fef2f2", "#fee2e2", "#dc2626"),
+}
+
 # ─── Page 3：候选人视图 ───────────────────────────────────────────────────────
 def render_candidate_view():
-    dims    = st.session_state.locked_dims
-    fp      = st.session_state.fingerprint
-    at      = st.session_state.locked_at
-    results = st.session_state.screening_results
+    locked_jobs = st.session_state.locked_jobs
+    results     = st.session_state.screening_results
 
     st.html(f"""
 {"" if has_api_key() else _preset_mode_banner()}
@@ -1311,34 +1319,54 @@ def render_candidate_view():
   </p>
 </div>""")
 
-    # 候选人选择器（含结果颜色指示点）
+    # ── 候选人 ID 登录模拟 ────────────────────────────────────────────────────
+    st.html("""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
+            padding:14px 18px;margin-bottom:10px;
+            box-shadow:0 1px 4px rgba(0,0,0,.05);">
+  <p style="font-size:13px;font-weight:600;color:#374151;margin:0 0 8px;">
+    🔐 请输入您的应聘者编号查看结果
+  </p>
+</div>""")
+    _id_input = st.text_input(
+        "应聘者编号",
+        value=st.session_state.get("cv_selected", "B"),
+        placeholder="输入编号，如 A、B … J",
+        key="cv_id_input",
+        label_visibility="collapsed",
+        max_chars=2,
+    )
+    if _id_input.strip().upper() in CANDIDATES_MAP:
+        _new_id = _id_input.strip().upper()
+        if _new_id != st.session_state.get("cv_selected"):
+            st.session_state.cv_selected = _new_id
+            st.session_state[f"ao_{_new_id}"] = False
+            st.rerun()
+
+    # ── 演示快速导航（彩点 + ID，不显示姓名）────────────────────────────────
     _dot = {"强推进面试": "🟢", "待定": "🟡", "不推进": "🔴"}
     for grp_key, grp_label in [("pm","产品经理岗"), ("dev","后端开发岗")]:
-        st.markdown(f'<p style="font-size:12px;color:#9ca3af;margin-bottom:4px;">{grp_label}</p>', unsafe_allow_html=True)
-        grp_c = [c for c in CANDIDATES if c["job"] == grp_key]
+        st.markdown(f'<p style="font-size:11px;color:#c4c9d4;margin-bottom:3px;">{grp_label}</p>',
+                    unsafe_allow_html=True)
+        grp_c    = [c for c in CANDIDATES if c["job"] == grp_key]
         btn_cols = st.columns(min(len(grp_c), 5))
         for i, c in enumerate(grp_c):
             with btn_cols[i]:
-                cid = c["id"]
-                # 获取该候选人最终结果（用于颜色点）
-                if cid in st.session_state.screening_results:
-                    _ai_r = st.session_state.screening_results[cid]["ai_result"]
-                else:
-                    _ai_r = c["result"]
-                _final_r, _ = _get_final(cid, _ai_r)
-                dot = _dot.get(_final_r, "⚪")
+                cid   = c["id"]
+                _ai_r = results[cid]["ai_result"] if cid in results else c["result"]
+                _fr, _ = _get_final(cid, _ai_r)
+                dot   = _dot.get(_fr, "⚪")
                 is_sel = st.session_state.get("cv_selected") == cid
-                btn_lbl = f"{dot} {c['name']}"
-                if st.button(btn_lbl, key=f"cv_{cid}",
+                if st.button(f"{dot} {cid}", key=f"cv_{cid}",
                              type="primary" if is_sel else "secondary",
                              use_container_width=True):
                     st.session_state.cv_selected = cid
                     st.session_state[f"ao_{cid}"] = False
                     st.rerun()
-        st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
-    sel   = st.session_state.get("cv_selected", "B")
-    cand  = CANDIDATES_MAP.get(sel)
+    sel  = st.session_state.get("cv_selected", "B")
+    cand = CANDIDATES_MAP.get(sel)
     if not cand:
         return
 
@@ -1348,12 +1376,16 @@ def render_candidate_view():
     else:
         ai_r = cand["result"]; scores = cand["scores"]; reasons = cand.get("reasons", {})
 
-    final, is_ov    = _get_final(sel, ai_r)
-    color           = result_color(final)
-    cm              = COLOR_MAP[color]
-    display_dims    = JOB_PRESETS[cand["job"]]["dims"]
-    jl              = JOB_PRESETS[cand["job"]]["label"]
-    display_fp      = fp if fp else rule_fingerprint(display_dims)
+    final, is_ov = _get_final(sel, ai_r)
+    color        = result_color(final)
+    cm           = COLOR_MAP[color]
+
+    # 使用对应岗位已锁定的维度（保证与 HR 视图一致），否则回退预设
+    _cand_js   = locked_jobs.get(cand["job"])
+    display_dims = _cand_js["dims"]        if _cand_js else JOB_PRESETS[cand["job"]]["dims"]
+    display_fp   = _cand_js["fingerprint"] if _cand_js else rule_fingerprint(display_dims)
+    display_at   = _cand_js["locked_at"]   if _cand_js else ""
+    jl           = JOB_PRESETS[cand["job"]]["label"]
 
     # ── 演示说明（卡片上方）──────────────────────────────────────────────────
     NOTES = {
@@ -1379,14 +1411,16 @@ def render_candidate_view():
   {NOTES[sel]}
 </div>""")
 
-    # 维度通过/未通过行
+    # 维度通过/未通过行（阈值与进度条颜色对齐：≥65 蓝/绿=符合，50–64 黄=基本符合，<50 红=有待提升）
     dim_rows = ""
     for d in display_dims:
         s    = scores.get(d["id"], 0)
-        pass_= s >= 65
-        bg_  = "#f0fdf4" if pass_ else "#fef2f2"
-        tc_  = "#166534" if pass_ else "#991b1b"
-        tag_ = "✅ 符合要求" if pass_ else "⚠ 有待提升"
+        if s >= 65:
+            bg_ = "#f0fdf4"; tc_ = "#166534"; tag_ = "✅ 符合要求"
+        elif s >= 50:
+            bg_ = "#fffbeb"; tc_ = "#92400e"; tag_ = "📋 基本符合"
+        else:
+            bg_ = "#fef2f2"; tc_ = "#991b1b"; tag_ = "⚠ 有待提升"
         dim_rows += f"""
 <div style="display:flex;align-items:center;justify-content:space-between;
             padding:12px 0;border-bottom:1px solid #f3f4f6;">
@@ -1398,14 +1432,9 @@ def render_candidate_view():
                padding:3px 12px;font-size:12px;font-weight:600;">{tag_}</span>
 </div>"""
 
-    # 结果大图标 + 文字配置
-    _result_cfg = {
-        "强推进面试": ("✅", "#166534", "#f0fdf4", "#dcfce7", "#16a34a"),
-        "待定":      ("⏳", "#92400e", "#fffbeb", "#fef3c7", "#d97706"),
-        "不推进":    ("❌", "#991b1b", "#fef2f2", "#fee2e2", "#dc2626"),
-    }
-    r_icon, r_text_c, r_bg, r_border_c, r_accent = _result_cfg.get(
-        final, ("❓", "#374151", "#f9fafb", "#e5e7eb", "#6b7280")
+    # 结果大图标 + 文字配置（使用候选人友好文案）
+    r_icon, r_label, r_text_c, r_bg, r_border_c, r_accent = _CV_RESULT.get(
+        final, ("❓", final, "#374151", "#f9fafb", "#e5e7eb", "#6b7280")
     )
     ov_note_cv = (
         f'<div style="margin-top:8px;font-size:12px;color:#d97706;font-weight:500;">'
@@ -1421,9 +1450,9 @@ def render_candidate_view():
     <p style="font-size:12px;color:#6b7280;margin:0 0 14px;font-weight:500;letter-spacing:.02em;">
       腾讯 · {jl} · 2026届秋招</p>
     <!-- 结果大字 -->
-    <div style="font-size:36px;font-weight:900;color:{r_text_c};
+    <div style="font-size:32px;font-weight:900;color:{r_text_c};
                 letter-spacing:-.01em;line-height:1.1;margin-bottom:10px;">
-      {r_icon}&nbsp;{final}
+      {r_icon}&nbsp;{r_label}
     </div>
     <h3 style="font-size:16px;font-weight:600;color:#374151;margin:0;">
       您好，{cand["name"]}
@@ -1470,8 +1499,9 @@ def render_candidate_view():
     # 公示页按钮
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
     if st.button("🔗 查看规则公示页", key=f"pub_cv_{sel}"):
-        if dims and fp:
-            st.session_state.public_html = build_public_page_html(dims, fp, at, jl)
+        if display_fp:
+            st.session_state.public_html = build_public_page_html(
+                display_dims, display_fp, display_at, jl)
         else:
             st.toast("请先在规则构建页锁定规则", icon="⚠️")
     if st.session_state.public_html:

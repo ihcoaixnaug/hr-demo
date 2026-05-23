@@ -1043,29 +1043,28 @@ def render_screening():
     </div>
   </div>
 
-  <!-- ▌ 右：AI 处理率 (dark card) -->
-  <div style="background:linear-gradient(160deg,#1A1714 0%,#2D2825 100%);
-              border-radius:20px;padding:24px;
-              box-shadow:0 4px 20px rgba(28,23,20,.22);">
-    <div style="font-size:10px;font-weight:700;color:#A8A49E;text-transform:uppercase;
+  <!-- ▌ 右：AI 处理率 (light card) -->
+  <div style="background:#FEFDFB;border:1px solid #E8E4DE;border-radius:20px;padding:24px;
+              box-shadow:0 2px 14px rgba(28,23,20,.07);">
+    <div style="font-size:10px;font-weight:700;color:#9E9A94;text-transform:uppercase;
                 letter-spacing:.1em;margin-bottom:20px;">AI 自动处理率</div>
     <div style="display:flex;align-items:center;gap:20px;">
       <!-- conic-gradient donut ring -->
       <div style="width:82px;height:82px;border-radius:50%;flex-shrink:0;
-                  background:conic-gradient({_ring_color} {_ring_deg}deg,#2D2825 0deg);
+                  background:conic-gradient({_ring_color} {_ring_deg}deg,#EDE9E2 0deg);
                   display:flex;align-items:center;justify-content:center;">
-        <div style="width:58px;height:58px;background:#1A1714;border-radius:50%;"></div>
+        <div style="width:58px;height:58px;background:#FEFDFB;border-radius:50%;"></div>
       </div>
       <div>
-        <div style="font-size:46px;font-weight:900;color:#FEFDFB;letter-spacing:-.05em;
+        <div style="font-size:46px;font-weight:900;color:#1C1B18;letter-spacing:-.05em;
                     font-variant-numeric:tabular-nums;line-height:1;">{auto}<span
-             style="font-size:14px;font-weight:400;color:#A8A49E;margin-left:2px;">%</span></div>
+             style="font-size:14px;font-weight:400;color:#9E9A94;margin-left:2px;">%</span></div>
         <div style="font-size:12px;color:{_ring_color};font-weight:600;margin-top:7px;">{_ring_label}</div>
-        <div style="font-size:11px;color:#C8C4BE;margin-top:3px;">{s_n + rej}/{n} 份已决策</div>
+        <div style="font-size:11px;color:#6B6560;margin-top:3px;">{s_n + rej}/{n} 份已决策</div>
       </div>
     </div>
-    <div style="font-size:10.5px;color:#A8A49E;margin-top:16px;padding-top:12px;
-                border-top:1px solid #3D3936;line-height:1.6;">
+    <div style="font-size:10.5px;color:#9E9A94;margin-top:16px;padding-top:12px;
+                border-top:1px solid #E8E4DE;line-height:1.6;">
       (强推 {s_n} + 不推进 {rej}) ÷ {n} 份 · 待定 {p_n} 份需人工复核
     </div>
   </div>

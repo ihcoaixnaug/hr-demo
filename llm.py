@@ -42,6 +42,27 @@ def has_api_key() -> bool:
     return bool(_api_key())
 
 
+# ─── 内部 HTTP helper ─────────────────────────────────────────────────────────
+
+def _chat(payload: dict, timeout: int = 45) -> requests.Response:
+    """统一的 OpenRouter chat 请求。
+    - Header 全部使用 ASCII，避免 Python 3.14 对非 ASCII header 的 UnicodeEncodeError
+    - Body 显式序列化为 UTF-8 bytes，ensure_ascii=False 保留中文原文
+    """
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    return requests.post(
+        f"{OPENROUTER_BASE}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {_api_key()}",
+            "Content-Type": "application/json; charset=utf-8",
+            "HTTP-Referer": "https://zhishai.streamlit.app",
+            "X-Title": "ZhiShai-AI",   # ASCII only — no Chinese in headers
+        },
+        data=body,
+        timeout=timeout,
+    )
+
+
 # ─── 维度提取（与 JD 任职要求一一对应） ───────────────────────────────────────
 
 def extract_dims_from_jd(jd: str, job_label: str = "") -> tuple:
@@ -83,26 +104,17 @@ def extract_dims_from_jd(jd: str, job_label: str = "") -> tuple:
 }}"""
 
     try:
-        resp = requests.post(
-            f"{OPENROUTER_BASE}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://zhishai.streamlit.app",
-                "X-Title": "智筛 AI",
-            },
-            json={
-                "model": _model(),
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-                # 不使用 response_format，直接依赖 prompt 控制输出格式，兼容性更好
-            },
-            timeout=45,
-        )
+        resp = _chat({
+            "model": _model(),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+        }, timeout=45)
     except requests.exceptions.Timeout:
         return None, "请求超时（>45s），请稍后重试"
     except requests.exceptions.ConnectionError as e:
         return None, f"网络连接失败：{e}"
+    except Exception as e:
+        return None, f"请求异常：{e}"
 
     if not resp.ok:
         return None, f"API 错误 {resp.status_code}：{resp.text[:300]}"
@@ -202,22 +214,12 @@ def screen_candidate_with_llm(candidate: dict, dims: list, jd: str) -> dict | No
 }}"""
 
     try:
-        resp = requests.post(
-            f"{OPENROUTER_BASE}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://zhishai.streamlit.app",
-                "X-Title": "智筛 AI",
-            },
-            json={
-                "model": _model(),
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-                "response_format": {"type": "json_object"},
-            },
-            timeout=45,
-        )
+        resp = _chat({
+            "model": _model(),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"},
+        }, timeout=45)
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         data = json.loads(content)

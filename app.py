@@ -1748,56 +1748,57 @@ with tab4:
 with tab5:
     render_verification()
 
-# ── 悬浮置顶按钮（注入父 frame，跟随页面滚动，滚动超 300px 后出现）──────────────
+# ── 悬浮置顶按钮 ────────────────────────────────────────────────────────────────
+# 优先尝试注入父 frame（Streamlit Cloud 同源时有效）；
+# 若受 CSP 阻拦则在组件 iframe 内用 position:fixed 兜底（需 height>0）。
 st.components.v1.html("""
+<style>
+  /* 兜底：在 iframe 自身内固定显示（父 frame 注入失败时生效）*/
+  #fb { display:none; }
+  body { margin:0; background:transparent; }
+</style>
+<button id="fb" title="回到顶部"
+  style="position:fixed;bottom:16px;right:16px;width:44px;height:44px;
+         border-radius:50%;background:linear-gradient(135deg,#2563eb,#1e1b4b);
+         color:white;border:none;cursor:pointer;font-size:22px;font-weight:700;
+         box-shadow:0 4px 18px rgba(37,99,235,.45);z-index:9999;
+         display:flex;align-items:center;justify-content:center;">&#8679;</button>
 <script>
-(function() {
-  var doc = window.parent.document;
-  if (doc.getElementById('zhishai-top-btn')) return;
-
-  var btn = doc.createElement('button');
-  btn.id = 'zhishai-top-btn';
-  btn.title = '回到顶部';
-  btn.innerHTML = '&#8679;';   /* ⇧ */
-  btn.style.cssText = [
-    'position:fixed',
-    'bottom:36px',
-    'right:36px',
-    'width:44px',
-    'height:44px',
-    'border-radius:50%',
-    'background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%)',
-    'color:white',
-    'border:none',
-    'box-shadow:0 4px 18px rgba(37,99,235,.40),0 1px 4px rgba(0,0,0,.15)',
-    'cursor:pointer',
-    'font-size:22px',
-    'font-weight:700',
-    'line-height:1',
-    'display:none',
-    'align-items:center',
-    'justify-content:center',
-    'z-index:99999',
-    'transition:opacity .25s,transform .18s',
-    'opacity:0',
+(function(){
+  var CSS = [
+    'position:fixed','bottom:36px','right:36px','width:44px','height:44px',
+    'border-radius:50%','background:linear-gradient(135deg,#2563eb,#1e1b4b)',
+    'color:white','border:none','cursor:pointer','font-size:22px','font-weight:700',
+    'box-shadow:0 4px 18px rgba(37,99,235,.45),0 1px 3px rgba(0,0,0,.18)',
+    'z-index:2147483647','display:flex','align-items:center','justify-content:center',
+    'transition:transform .18s',
   ].join(';');
 
-  btn.onmouseenter = function(){ btn.style.transform='scale(1.12)'; };
-  btn.onmouseleave = function(){ btn.style.transform='scale(1)'; };
-  btn.onclick = function(){
-    window.parent.scrollTo({top:0, behavior:'smooth'});
-  };
-
-  doc.body.appendChild(btn);
-
-  window.parent.addEventListener('scroll', function(){
-    var show = window.parent.scrollY > 300;
-    btn.style.display = show ? 'flex' : 'none';
-    btn.style.opacity  = show ? '1'    : '0';
-  }, {passive: true});
+  try {
+    /* ── 方案 A：注入父 frame（同源 Streamlit Cloud / 本地均有效）── */
+    var pdoc = window.parent.document;
+    if (!pdoc.getElementById('zhishai-top-btn')) {
+      var b = pdoc.createElement('button');
+      b.id        = 'zhishai-top-btn';
+      b.title     = '回到顶部';
+      b.innerHTML = '&#8679;';
+      b.style.cssText = CSS;
+      b.onmouseenter = function(){ b.style.transform='scale(1.12)'; };
+      b.onmouseleave = function(){ b.style.transform='scale(1)'; };
+      b.onclick = function(){ window.parent.scrollTo({top:0,behavior:'smooth'}); };
+      pdoc.body.appendChild(b);
+    }
+  } catch(e) {
+    /* ── 方案 B：父 frame 不可访问，改为显示 iframe 内的兜底按钮 ── */
+    var fb = document.getElementById('fb');
+    if (fb) {
+      fb.style.display = 'flex';
+      fb.onclick = function(){ window.parent.scrollTo({top:0,behavior:'smooth'}); };
+    }
+  }
 })();
 </script>
-""", height=0)
+""", height=56)  # 给 iframe 足够高度让兜底按钮可见
 
 # ── Tab 跳转：rerun 后注入 JS 点击目标 Tab ───────────────────────────────────
 _goto = st.session_state.get("goto_tab", -1)

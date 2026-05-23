@@ -214,10 +214,11 @@ pool(candidate_id, added_by, note, created_at)
 ### extract_dims_from_jd 关键 Prompt 规则
 
 - 只读「任职要求」部分，每条 → 一个维度，顺序一致
-- 维度 label：4-8 个汉字，概括核心能力点
+- 维度 label：**直接从该条要求原文中摘取 2-6 汉字短语，不得改写或意译**（这是 hash 可信的基础）
+- 维度 id：label 的英文简写，仅供内部使用，不参与 hash 计算
 - 权重初始相等（总计 100%，余数加到最后一个）
 - **禁止**合并多条要求 / 凭空增加维度
-- 提取结果仅用于 Rule Builder 显示（供 HR 调整权重后锁定），不直接影响筛选 Prompt
+- 提取结果用于 Rule Builder 显示（供 HR 调整权重后锁定）；候选人在 Tab 5 验证时用同一函数重新提取
 
 ---
 
@@ -239,6 +240,16 @@ curl https://openrouter.ai/api/v1/models \
   -H "Authorization: Bearer $(cat .streamlit/secrets.toml | grep API_KEY | cut -d'"' -f2)" \
   | python3 -m json.tool | grep '"id"' | grep anthropic
 ```
+
+---
+
+### 设计变更 — rule_fingerprint 改用 (label, weight)（commit `43ed96e`）
+
+**原因**：`id` 是 AI 自动生成的英文 key（随机性高），不同次提取可能不同，导致候选人无法复现 hash。`label` 是直接从 JD 原文摘取的中文短语，复现性远高于 id。
+
+**影响**：已锁定规则的 hash 会变（演示环境可接受）。生产环境切换时需重新锁定规则。
+
+**不可回退**：如果将来需要再改 hash 算法，会破坏已有 hash 的可验证性，需谨慎。
 
 ---
 

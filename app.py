@@ -206,12 +206,26 @@ TAG_COLOR = {
     "985":  ("bg:#ede9fe","color:#5b21b6"),
     "211":  ("bg:#dbeafe","color:#1e40af"),
     "双非": ("bg:#f3f4f6","color:#4b5563"),
+    "职校": ("bg:#fff7ed","color:#c2410c"),
+    "自学": ("bg:#f0fdf4","color:#166534"),
+}
+DEGREE_COLOR = {
+    "本科": ("bg:#eff6ff","color:#1d4ed8"),
+    "硕士": ("bg:#faf5ff","color:#7c3aed"),
+    "博士": ("bg:#fdf4ff","color:#a21caf"),
+    "大专": ("bg:#fff7ed","color:#b45309"),
+    "高中": ("bg:#f0fdf4","color:#15803d"),
 }
 
 def _tag(tag: str) -> str:
     bg, color = TAG_COLOR.get(tag, ("bg:#f3f4f6","color:#4b5563"))
     return (f'<span style="{bg};{color};border-radius:999px;'
             f'padding:2px 8px;font-size:12px;font-weight:600;">{tag}</span>')
+
+def _degree_tag(degree: str) -> str:
+    bg, color = DEGREE_COLOR.get(degree, ("bg:#f3f4f6","color:#4b5563"))
+    return (f'<span style="{bg};{color};border-radius:999px;'
+            f'padding:2px 8px;font-size:12px;font-weight:600;">{degree}</span>')
 
 def _badge(result: str) -> str:
     c = COLOR_MAP[result_color(result)]
@@ -575,7 +589,7 @@ def render_screening():
         for i, c in enumerate(job_c):
             with cols2[i % 2]:
                 chk = st.checkbox(
-                    f"{c['name']} · {c['school']} · {c['tag']}",
+                    f"{c['name']} · {c['school']} · {c.get('degree','本科')} · {c['tag']}",
                     value=c["id"] in st.session_state.selected_cands,
                     key=f"chk_{c['id']}",
                 )
@@ -663,6 +677,7 @@ def render_screening():
         <span style="font-size:15px;font-weight:700;color:#111827;">{cand["name"]}</span>
         <span style="background:white;border:1px solid #e5e7eb;color:#374151;
                      border-radius:999px;padding:2px 8px;font-size:12px;">{cand["school"]}</span>
+        {_degree_tag(cand.get("degree","本科"))}
         {_tag(cand["tag"])}
         <span style="font-size:11px;color:#9ca3af;">{src_label}</span>
       </div>
@@ -962,13 +977,16 @@ def render_candidate_view():
 
     # 演示说明
     NOTES = {
-        "A": "王芳来自复旦（985），有主导项目和数据分析经验，强推进面试。说明系统对强 985 候选人同样公平。",
-        "B": "陈志远来自深圳大学（双非），凭项目主导经验得分与复旦王芳相当，同样强推进。核心对比：双非 ≠ 低能力。",
-        "D": "李思琪来自浙大（985），但无产品主导经历，按规则不推进。印证系统不因学历放行，985 也要凭实力。",
-        "E": "刘晓晨来自广东工业大学（双非），项目和技能均不达标，同样不推进。系统不因双非而降低标准。",
-        "F": "吴佳琪来自杭州电子科技大学（双非），有完整后端项目和开源贡献，技术维度得分高，强推进。",
-        "G": "赵明远来自南京大学（985），四项维度均衡优秀，技术与项目经验充分，强推进面试。",
-        "I": "周晓敏来自西安交通大学（985），缺乏后端工程经验，与岗位不匹配，按规则不推进。",
+        "A": "王芳（复旦 985 · 本科），有完整产品主导经历和数据分析能力，强推进。展示系统对强势候选人同样公平评估。",
+        "B": "陈志远（深圳大学 · 双非 · 本科），项目主导经验与复旦王芳相当，同样强推进。核心论点：双非本科凭实力 = 985。",
+        "C": "张浩然（北大 985 · 硕士），高学历、工具能力强，但缺乏产品主导经历，评为待定。说明：硕士学历不等于产品能力。",
+        "D": "李思琪（浙大 985 · 博士），SCI 论文 3 篇，但零产品经历，不推进。最强反直觉案例：985 博士被系统拒绝。",
+        "E": "刘晓晨（职校 · 大专），能力确实不达标，不推进。关键：系统不因职校背景歧视，但也不因此降低评分标准。",
+        "F": "吴佳琪（杭电 · 双非 · 本科），开源贡献和实习经验过硬，强推进。双非本科在技术维度完胜多位 985。",
+        "G": "赵明远（南大 985 · 硕士），工程与项目均衡，字节实习背书，强推进。展示硕士研究生的实战能力被公平评估。",
+        "H": "林浩宇（华科 985 · 本科），基础尚可但工程深度不足，待定。985 本科 ≠ 自动过关。",
+        "I": "周晓敏（清华 985 · 博士 · ACM 金牌），但方向是控制理论，零后端工程经验，不推进。\n最大反转：清华博士+竞赛金牌被系统拒绝，因为与岗位不匹配。",
+        "J": "郑凯文（无大学学历 · 高中 · 自学），4 年自学后端，GitHub 开源项目 1200+ stars，2 年全职工作经验，强推进。\n终极论点：系统只看岗位相关能力，无学历者凭实力击败清华博士。",
     }
     if sel in NOTES:
         st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)

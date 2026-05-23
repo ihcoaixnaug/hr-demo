@@ -320,4 +320,26 @@ curl https://openrouter.ai/api/v1/models \
    - J（自学强推）：problem:94（生产环境排查），但 **collab:58**（仅远程异步，无团队经历）
    - A（985本科强推）：communication:90（最佳表达），但 tech:76（数据分析深度一般）
 
+---
+
+### Bug 8 — 操作按钮文字截断 + 全面 UI 重设计（已修复，commit `e568b9c`）
+
+**现象**：「展开详细理由 ▼」「查看原始简历」文字跑出按钮边界。
+
+**根因**：`st.columns([1,1,1,4])` 按钮列宽仅约 110px，配合 `white-space:nowrap` 时文字超出列边界。
+
+**修复**：
+- 按钮标签缩短为「▼ 展开理由」「📄 原始简历」「＋ 备选池」
+- 列宽改为 `[5,4,4,3]`（有备选池）或 `[5,4,7]`（无备选池），配合 `use_container_width=True`
+
+**全面 UI 重设计**：
+- CSS：多层阴影、渐变、`letter-spacing`、`-webkit-font-smoothing`
+- Score bars：4 档颜色（green/blue/amber/red）渐变填充，数字带颜色
+- 汇总 metrics：自定义 HTML 彩色卡片替换 `st.metric`
+- 候选人卡片：`border-radius:16px`、`box-shadow`、scores 区域加分隔线
+- AI 理由面板：白色卡片 + 标签 chip 设计
+- 规则锁定卡：深色渐变（`#111827→#1e1b4b`）+ 绿色指纹大字
+- 候选人视图：蓝色指纹区域、更清晰的 banner 布局
+- Header：副标题改为英文 tagline
+
 *最后更新：2026-05-23*

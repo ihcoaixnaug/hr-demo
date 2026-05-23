@@ -11,7 +11,7 @@ from utils import rule_fingerprint, weighted_score, result_color, build_public_p
 from database import (
     init_db, save_rule,
     save_screening_result, get_screening_results,
-    save_hr_override,
+    save_hr_override, get_hr_overrides,
     add_to_pool_db, remove_from_pool_db, get_pool_db,
     save_appeal, get_all_appeals, update_appeal_status,
 )
@@ -328,10 +328,9 @@ def _bars(scores: dict, dims: list) -> str:
             bar_color = "linear-gradient(to right,#f87171,#ef4444)"
             num_color = "#dc2626"
         rows.append(f"""
-<div style="display:grid;grid-template-columns:8rem 1fr 2.2rem;gap:8px;
+<div style="display:grid;grid-template-columns:minmax(5rem,max-content) 1fr 2.2rem;gap:8px;
             align-items:center;margin-bottom:7px;">
-  <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;
-               text-overflow:ellipsis;">
+  <span style="font-size:12px;color:#6b7280;white-space:nowrap;">
     {d["label"]}<span style="color:#d1d5db;font-size:11px;margin-left:3px;">{d["weight"]}%</span>
   </span>
   <div style="background:#f1f5f9;border-radius:999px;height:7px;overflow:hidden;">
@@ -479,7 +478,7 @@ def render_rule_builder():
     <span style="font-size:16px;">🔒</span>
     <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">规则已锁定 · 不可修改</span>
   </div>
-  <p style="font-size:12px;color:#6b7280;margin:0 0 18px;">锁定时间：{at}</p>
+  <p style="font-size:12px;color:#9ca3af;margin:0 0 18px;">锁定时间：{at}</p>
 
   <div style="background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);
               border-radius:12px;padding:16px 18px;margin-bottom:16px;">
@@ -516,9 +515,9 @@ def render_rule_builder():
                     }[k]
                 st.rerun()
         with c_hint:
-            if st.button("📊 前往筛选工作台 →", key="goto_screen", type="primary"):
-                st.session_state.goto_tab = 1   # 筛选工作台 = index 1
-                st.rerun()
+            st.html("""<div style="padding:8px 0;font-size:13px;color:#6b7280;">
+  👆 点击顶部 <strong style="color:#1d4ed8;">「📊 筛选工作台」</strong> 标签开始筛选
+</div>""")
 
         # 公示页
         st.markdown("---")
@@ -752,6 +751,18 @@ def render_screening():
             st.rerun()
 
     if not results:
+        st.html("""
+<div style="background:white;border:1px dashed #d1d5db;border-radius:16px;
+            padding:48px 32px;text-align:center;margin-top:12px;">
+  <div style="font-size:32px;margin-bottom:12px;">🚀</div>
+  <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px;">
+    选择候选人后点击「开始筛选」
+  </div>
+  <div style="font-size:13px;color:#9ca3af;line-height:1.7;">
+    AI 将按锁定规则逐份评分，每条结论追溯到具体维度<br/>
+    评分完成后结果卡片将在此显示
+  </div>
+</div>""")
         return
 
     # ── 汇总栏 ───────────────────────────────────────────────────────────────
@@ -763,7 +774,7 @@ def render_screening():
     auto = round(((s_n + rej) / n) * 100) if n else 0
 
     st.html(f"""
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
   <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
               padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
@@ -846,7 +857,53 @@ def render_screening():
       {ratio_icon} {ratio_str}</span>
     <span style="font-size:12px;color:{ratio_color};">{ratio_note}</span>
   </div>
-  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;">目标 ≤8:1 · 招聘 {hiring_target} 人</div>
+  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;text-align:right;">
+    目标 ≤8:1 · 招聘 {hiring_target} 人<br/>
+    <span style="font-size:11px;color:#d1d5db;">基于本批 {n} 份样本估算</span>
+  </div>
+</div>""")
+
+    # ── 核心论据 Callout：非精英候选人超越精英时主动高亮 ─────────────────────
+    _elite_tags = {"985", "211"}
+    _scored = [
+        (c, weighted_score(results[c["id"]]["scores"], dims))
+        for c in job_c if c["id"] in results
+    ]
+    _scored.sort(key=lambda x: x[1], reverse=True)
+    _elite_scores   = [s for c, s in _scored if c["tag"] in _elite_tags]
+    _non_elite_top  = [(c, s) for c, s in _scored if c["tag"] not in _elite_tags]
+    if _elite_scores and _non_elite_top:
+        _max_elite   = max(_elite_scores)
+        _top_ne_cand, _top_ne_score = _non_elite_top[0]
+        _beaten_count = sum(1 for s in _elite_scores if _top_ne_score > s)
+        if _beaten_count > 0:
+            _final_ne, _ = _get_final(_top_ne_cand["id"],
+                                       results[_top_ne_cand["id"]]["ai_result"])
+            if _final_ne == "强推进面试":
+                st.html(f"""
+<div style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);
+            border-radius:16px;padding:18px 22px;margin-bottom:16px;
+            border:1px solid rgba(110,231,183,.25);
+            box-shadow:0 4px 20px rgba(17,24,39,.3);">
+  <div style="display:flex;align-items:flex-start;gap:14px;">
+    <span style="font-size:28px;flex-shrink:0;">⚡</span>
+    <div>
+      <div style="font-size:14px;font-weight:800;color:#6ee7b7;margin-bottom:6px;
+                  letter-spacing:-.01em;">院校隔离生效 · 核心论据</div>
+      <div style="font-size:13px;color:#e5e7eb;line-height:1.7;">
+        <strong style="color:#fff;">{_top_ne_cand["name"]}</strong>
+        <span style="background:rgba(255,255,255,.1);border-radius:999px;
+                     padding:1px 8px;font-size:11px;color:#d1d5db;margin:0 6px;">
+          {_top_ne_cand["school"]} · {_top_ne_cand["tag"]}</span>
+        综合得分 <strong style="color:#6ee7b7;font-size:16px;">{_top_ne_score}</strong> 分，
+        超过 <strong style="color:#fff;">{_beaten_count}</strong> 位 985/211 候选人
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-top:8px;line-height:1.6;">
+        系统在技术层面已移除院校名称，评分完全基于简历中可观察的能力事实。
+        双非候选人凭实力排名更高——这是本方案化解「院校歧视 vs 能力优先」冲突的核心证明。
+      </div>
+    </div>
+  </div>
 </div>""")
 
     # ── 候选人结果卡片 ────────────────────────────────────────────────────────
@@ -931,25 +988,22 @@ def render_screening():
         if show_pool_btn:
             with btn_cols[2]:
                 if not in_pool:
-                    if st.button("＋ 备选池", key=f"btn_pool_{cid}", use_container_width=True):
+                    if st.button("＋ 跨岗备选", key=f"btn_pool_{cid}", use_container_width=True,
+                                 help="加入跨岗位备选库，供其他岗位 HR 参考复用"):
                         add_to_pool_db(cid, preset["label"])
                         _sync_pool()
                         st.rerun()
                 else:
-                    st.markdown('<div style="padding:7px 0;font-size:12px;color:#d97706;font-weight:500;">✓ 已在备选池</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="padding:7px 0;font-size:12px;color:#d97706;font-weight:500;">✓ 已入跨岗库</div>', unsafe_allow_html=True)
 
         # ── 展开：理由 + HR 覆盖 ──────────────────────────────────────────────
         if is_expanded:
             reasons_html = "".join(
-                f"""<div style="display:flex;gap:14px;padding:10px 0;
-                              border-bottom:1px solid #f3f4f6;align-items:flex-start;">
-  <div style="flex-shrink:0;width:68px;padding-top:1px;">
-    <span style="font-size:11px;font-weight:700;color:#374151;
-                 background:#f8faff;border:1px solid #e0e7ff;border-radius:6px;
-                 padding:2px 7px;white-space:nowrap;">{d["label"]}</span>
-  </div>
-  <span style="font-size:12.5px;color:#4b5563;line-height:1.65;">
-    {r["reasons"].get(d["id"],"")}</span>
+                f"""<div style="background:#f8faff;border:1px solid #e8eeff;border-radius:8px;
+                              padding:10px 14px;margin-bottom:8px;">
+  <div style="font-size:11px;font-weight:700;color:#4f46e5;
+              letter-spacing:.04em;margin-bottom:6px;">{d["label"]}</div>
+  <div style="font-size:12.5px;color:#374151;line-height:1.7;">{r["reasons"].get(d["id"],"")}</div>
 </div>"""
                 for d in dims
             )
@@ -1063,13 +1117,27 @@ def render_screening():
         # 卡片间隔
         st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
 
-    # ── HR 申诉管理面板 ───────────────────────────────────────────────────────
+    # ── HR 申诉管理面板 + 审计日志 ───────────────────────────────────────────
     st.markdown('<div style="height:24px;"></div>', unsafe_allow_html=True)
-    all_appeals = get_all_appeals()
-    appeal_count = len(all_appeals)
+
+    # 申诉数量徽标
+    all_appeals  = get_all_appeals()
+    appeal_count = len([a for a in all_appeals if a.get("status", "pending") == "pending"])
+    appeal_badge = (
+        f'<span style="background:#ef4444;color:white;border-radius:999px;'
+        f'padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{appeal_count}</span>'
+        if appeal_count else ""
+    )
+    st.html(f"""
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+  <span style="font-size:14px;font-weight:700;color:#374151;">📬 申诉管理</span>
+  {appeal_badge}
+  <span style="font-size:12px;color:#9ca3af;">· 候选人提交后在此复核，结果写入审计日志</span>
+</div>""")
+
     with st.expander(
-        f"📬 申诉管理面板 {'· ' + str(appeal_count) + ' 条待处理' if appeal_count else '· 暂无申诉'}",
-        expanded=False
+        f"{'🔴 ' + str(appeal_count) + ' 条待处理申诉' if appeal_count else '📭 暂无待处理申诉'} — 点击展开",
+        expanded=bool(appeal_count)
     ):
         if not all_appeals:
             st.html("""
@@ -1165,6 +1233,50 @@ def render_screening():
                     )
                 st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
 
+    # ── HR 操作审计日志 ───────────────────────────────────────────────────────
+    st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
+    overrides_log = get_hr_overrides(rule_id) if rule_id else []
+    with st.expander(
+        f"🗂 HR 操作审计日志 · 共 {len(overrides_log)} 条{'（只读）' if overrides_log else ' — 暂无覆盖操作'}",
+        expanded=False,
+    ):
+        if not overrides_log:
+            st.html("""
+<div style="text-align:center;padding:24px;color:#9ca3af;font-size:13px;">
+  ℹ 尚未发生 HR 覆盖操作。覆盖 AI 建议后记录将在此留存，不可删除。
+</div>""")
+        else:
+            st.html(f"""
+<div style="font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.6;">
+  以下记录为本规则版本下所有 HR 覆盖操作，<strong style="color:#374151;">不可修改，仅供审计参考</strong>。
+  合规审查时可截图或导出此页面。
+</div>""")
+            for row in overrides_log:
+                cand_info = CANDIDATES_MAP.get(row["candidate_id"])
+                cname_log = cand_info["name"] if cand_info else row["candidate_id"]
+                orig_c  = result_color(row["original_result"])
+                over_c  = result_color(row["override_result"])
+                orig_bg = COLOR_MAP[orig_c]["badge_bg"]
+                orig_tc = COLOR_MAP[orig_c]["badge_text"]
+                over_bg = COLOR_MAP[over_c]["badge_bg"]
+                over_tc = COLOR_MAP[over_c]["badge_text"]
+                st.html(f"""
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;
+            padding:12px 16px;margin-bottom:6px;font-size:12px;">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+    <span style="font-weight:700;color:#111827;">{cname_log}</span>
+    <span style="background:{orig_bg};color:{orig_tc};border-radius:999px;
+                 padding:1px 8px;font-size:11px;">{row["original_result"]}</span>
+    <span style="color:#9ca3af;">→</span>
+    <span style="background:{over_bg};color:{over_tc};border-radius:999px;
+                 padding:1px 8px;font-size:11px;">{row["override_result"]}</span>
+    <span style="color:#c4c9d4;margin-left:auto;font-size:11px;">{row.get("created_at","")[:16]}</span>
+  </div>
+  <div style="color:#4b5563;line-height:1.6;">
+    <strong style="color:#374151;">覆盖原因：</strong>{row["override_note"]}
+  </div>
+</div>""")
+
 
 # ─── Page 3：候选人视图 ───────────────────────────────────────────────────────
 def render_candidate_view():
@@ -1191,7 +1303,7 @@ def render_candidate_view():
     for grp_key, grp_label in [("pm","产品经理岗"), ("dev","后端开发岗")]:
         st.markdown(f'<p style="font-size:12px;color:#9ca3af;margin-bottom:4px;">{grp_label}</p>', unsafe_allow_html=True)
         grp_c = [c for c in CANDIDATES if c["job"] == grp_key]
-        btn_cols = st.columns(len(grp_c))
+        btn_cols = st.columns(min(len(grp_c), 5))
         for i, c in enumerate(grp_c):
             with btn_cols[i]:
                 cid = c["id"]
@@ -1421,24 +1533,60 @@ def render_candidate_view():
             placeholder="选择维度（可多选）",
         )
 
+        # 申诉内容质量校验
+        _VAGUE_PATTERNS = [
+            "不公平", "觉得", "感觉", "应该", "就是不对", "不对", "很好",
+            "很强", "很棒", "挺好", "还不错", "比较好", "有点", "有些",
+        ]
+        _MIN_CHARS = 30  # 每条补充说明至少 30 字
+
+        def _check_evidence(text: str) -> str | None:
+            """返回错误提示，None 表示通过。"""
+            stripped = text.strip()
+            if len(stripped) < _MIN_CHARS:
+                return f"内容太短（{len(stripped)} 字），请至少补充 {_MIN_CHARS} 字的具体证据"
+            vague_hits = [p for p in _VAGUE_PATTERNS if p in stripped]
+            # 只有纯主观表达（无任何数字/项目/链接等具体信息）才拦截
+            has_concrete = any(c.isdigit() for c in stripped) or any(
+                kw in stripped for kw in ["项目", "实习", "GitHub", "github",
+                                           "代码", "论文", "比赛", "奖", "作品",
+                                           "链接", "经历", "负责", "开发", "实现",
+                                           "完成", "数据", "分析", "报告"]
+            )
+            if vague_hits and not has_concrete:
+                return f"「{'、'.join(vague_hits[:2])}」属于主观表述，请补充可核实的具体事实（项目名称、量化结果、链接等）"
+            return None
+
         ap_evidence: dict[str, str] = {}
+        ap_errors:   dict[str, str] = {}
         for label in selected_labels:
             dim_id = dim_label_to_id[label]
             ev = st.text_area(
                 f"关于「{label}」的补充说明",
                 key=f"ap_ev_{sel}_{dim_id}",
                 placeholder=(
-                    "请描述您认为 AI 评估中遗漏的具体证据，"
-                    "例如：简历中未充分体现的项目经历、技能应用场景、量化成果等。"
-                    "模糊的「我觉得不公平」将无法作为复核依据。"
+                    "请提供可核实的具体证据，例如：\n"
+                    "· 项目名称 + 你负责的具体模块 + 量化结果\n"
+                    "· GitHub/作品集链接\n"
+                    "· 相关比赛奖项或证书名称\n"
+                    "（「我觉得不公平」等主观表述将被系统自动拦截）"
                 ),
-                height=88,
+                height=100,
             )
             ap_evidence[dim_id] = ev
+            err = _check_evidence(ev) if ev.strip() else None
+            if err:
+                ap_errors[dim_id] = err
+                st.html(f"""
+<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+            padding:8px 12px;font-size:12px;color:#991b1b;margin-top:-6px;margin-bottom:4px;">
+  🚫 <strong>无法提交：</strong>{err}
+</div>""")
 
         can_submit = (
             len(selected_labels) > 0
             and all(v.strip() for v in ap_evidence.values())
+            and not ap_errors
         )
 
         ca, sb = st.columns(2)
@@ -1751,9 +1899,13 @@ def render_verification():
 # ─── 渲染入口 ─────────────────────────────────────────────────────────────────
 render_header()
 
+_pending_appeals = len([a for a in get_all_appeals()
+                        if a.get("status", "pending") == "pending"])
+_appeal_tab_label = f"📊 筛选工作台{'  🔴' if _pending_appeals else ''}"
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",
-    "📊 筛选工作台",
+    _appeal_tab_label,
     "👤 候选人视图",
     "📦 简历备选池",
     "🔍 规则验证",

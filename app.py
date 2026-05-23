@@ -256,6 +256,7 @@ def _init():
         "pool":              [],
         "appeal_submitted":  set(),
         "public_html":       "",
+        "hiring_target":     120,   # 计划招聘人数（可在筛选工作台调整）
         "selected_cands":    [],
         "goto_tab":          -1,
         "cv_selected":       "B",
@@ -797,8 +798,29 @@ def render_screening():
 
     # ── 漏斗预估：基于当前强推率推算全量 12000 份简历的到面人数 ─────────────────
     if n > 0:
+        # 计划招聘人数（可调节）
+        _fc, _nc = st.columns([5, 1])
+        with _nc:
+            hiring_target = st.number_input(
+                "计划招聘人数",
+                min_value=1, max_value=5000,
+                value=st.session_state.hiring_target,
+                step=10,
+                key="hiring_target_input",
+                help="用于计算「到面录取比」= 预计进入面试人数 / 计划招聘人数",
+            )
+            st.session_state.hiring_target = hiring_target
+        with _fc:
+            # AI 自动处理说明
+            st.html(f"""
+<div style="font-size:12px;color:#6b7280;padding:6px 0;line-height:1.7;">
+  <strong style="color:#374151;">AI 自动处理 {auto}%</strong>
+  = (强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份，无需 HR 介入；
+  剩余 <strong style="color:#374151;">待定 {p_n} 份（{100-auto}%）</strong> 需人工复核。
+</div>""")
+
         proj_interviews = round(12000 * s_n / n)
-        ratio_val       = proj_interviews / 120 if proj_interviews else 0
+        ratio_val       = proj_interviews / hiring_target if hiring_target else 0
         ratio_str       = f"{ratio_val:.1f}:1"
         ratio_ok        = ratio_val <= 8
         ratio_bg        = "#f0fdf4" if ratio_ok else "#fef2f2"
@@ -824,7 +846,7 @@ def render_screening():
       {ratio_icon} {ratio_str}</span>
     <span style="font-size:12px;color:{ratio_color};">{ratio_note}</span>
   </div>
-  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;">目标 ≤8:1 · 招聘120人</div>
+  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;">目标 ≤8:1 · 招聘 {hiring_target} 人</div>
 </div>""")
 
     # ── 候选人结果卡片 ────────────────────────────────────────────────────────

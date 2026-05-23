@@ -1347,28 +1347,6 @@ def render_candidate_view():
             st.session_state[f"ao_{_new_id}"] = False
             st.rerun()
 
-    # ── 演示快速导航（彩点 + ID，不显示姓名）────────────────────────────────
-    _dot = {"强推进面试": "🟢", "待定": "🟡", "不推进": "🔴"}
-    for grp_key, grp_label in [("pm","产品经理岗"), ("dev","后端开发岗")]:
-        st.markdown(f'<p style="font-size:11px;color:#c4c9d4;margin-bottom:3px;">{grp_label}</p>',
-                    unsafe_allow_html=True)
-        grp_c    = [c for c in CANDIDATES if c["job"] == grp_key]
-        btn_cols = st.columns(min(len(grp_c), 5))
-        for i, c in enumerate(grp_c):
-            with btn_cols[i]:
-                cid   = c["id"]
-                _ai_r = results[cid]["ai_result"] if cid in results else c["result"]
-                _fr, _ = _get_final(cid, _ai_r)
-                dot   = _dot.get(_fr, "⚪")
-                is_sel = st.session_state.get("cv_selected") == cid
-                if st.button(f"{dot} {cid}", key=f"cv_{cid}",
-                             type="primary" if is_sel else "secondary",
-                             use_container_width=True):
-                    st.session_state.cv_selected = cid
-                    st.session_state[f"ao_{cid}"] = False
-                    st.rerun()
-        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
-
     sel  = st.session_state.get("cv_selected", "B")
     cand = CANDIDATES_MAP.get(sel)
     if not cand:

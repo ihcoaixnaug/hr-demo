@@ -13,7 +13,7 @@ from database import (
     save_screening_result, get_screening_results,
     save_hr_override,
     add_to_pool_db, remove_from_pool_db, get_pool_db,
-    save_appeal,
+    save_appeal, get_all_appeals, update_appeal_status,
 )
 from llm import screen_candidate_with_llm, extract_dims_from_jd, has_api_key
 
@@ -349,6 +349,34 @@ def _get_final(cid: str, ai_result: str):
     return ai_result, False
 
 
+def _role_badge(role: str) -> str:
+    """渲染视角标签：HR视角（蓝）/ 候选人视角（绿）"""
+    cfg = {
+        "HR 视角":   ("#eff6ff", "#1d4ed8", "#bfdbfe", "👔"),
+        "候选人视角": ("#f0fdf4", "#166534", "#86efac", "🎓"),
+    }
+    bg, tc, border, icon = cfg.get(role, ("#f9fafb", "#374151", "#e5e7eb", "👤"))
+    return (
+        f'<span style="background:{bg};color:{tc};border:1px solid {border};'
+        f'border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;">'
+        f'{icon} {role}</span>'
+    )
+
+
+def _preset_mode_banner() -> str:
+    """当无 API Key 时显示的预设数据模式顶部提示条。"""
+    return """
+<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;
+            padding:12px 18px;margin-bottom:16px;
+            display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
+  <span style="font-size:18px;">📋</span>
+  <div>
+    <strong>预设数据模式</strong> — 未配置 API Key，以下展示内容均为预先编排的演示数据。<br/>
+    <span style="font-size:12px;color:#b45309;">配置 OPENROUTER_API_KEY 后可切换为 Claude 真实评分模式。</span>
+  </div>
+</div>"""
+
+
 # ─── Header ───────────────────────────────────────────────────────────────────
 def render_header():
     badges_html = ""
@@ -506,9 +534,12 @@ def render_rule_builder():
         return
 
     # ══ 未锁定态 ══════════════════════════════════════════════════════════════
-    st.html("""
+    st.html(f"""
 <div style="margin-bottom:20px;">
-  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">规则构建</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">规则构建</h2>
+    {_role_badge("HR 视角")}
+  </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">
     选择招募岗位，AI 自动加载评估维度，确认后一键锁定并生成公示指纹
   </p>
@@ -648,8 +679,12 @@ def render_screening():
     job_c   = [c for c in CANDIDATES if c["job"] == jk]
 
     st.html(f"""
+{"" if has_api_key() else _preset_mode_banner()}
 <div style="margin-bottom:16px;">
-  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">筛选工作台</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">筛选工作台</h2>
+    {_role_badge("HR 视角")}
+  </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">
     AI 按锁定规则逐条评分 · 每条结论追溯维度 ·
     <span style="background:#eff6ff;color:#1d4ed8;border-radius:999px;
@@ -758,6 +793,38 @@ def render_screening():
                 letter-spacing:.05em;margin-bottom:6px;">AI 自动处理</div>
     <div style="font-size:28px;font-weight:800;color:#1e40af;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
   </div>
+</div>""")
+
+    # ── 漏斗预估：基于当前强推率推算全量 12000 份简历的到面人数 ─────────────────
+    if n > 0:
+        proj_interviews = round(12000 * s_n / n)
+        ratio_val       = proj_interviews / 120 if proj_interviews else 0
+        ratio_str       = f"{ratio_val:.1f}:1"
+        ratio_ok        = ratio_val <= 8
+        ratio_bg        = "#f0fdf4" if ratio_ok else "#fef2f2"
+        ratio_border    = "#86efac" if ratio_ok else "#fecaca"
+        ratio_color     = "#166534" if ratio_ok else "#991b1b"
+        ratio_icon      = "✅" if ratio_ok else "⚠"
+        ratio_note      = "达标 ≤8:1" if ratio_ok else "偏高，可上调强推阈值"
+        st.html(f"""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
+            padding:14px 20px;margin-bottom:16px;
+            display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+            box-shadow:0 1px 4px rgba(0,0,0,.05);">
+  <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;
+              letter-spacing:.05em;white-space:nowrap;">📐 全量推算（基于本批 {n} 份）</div>
+  <div style="display:flex;align-items:baseline;gap:6px;">
+    <span style="font-size:24px;font-weight:800;color:#111827;">{proj_interviews}</span>
+    <span style="font-size:13px;color:#6b7280;">人预计进入面试 / 12,000 份简历</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:13px;color:#6b7280;">到面录取比</span>
+    <span style="background:{ratio_bg};border:1px solid {ratio_border};color:{ratio_color};
+                 border-radius:999px;padding:3px 12px;font-size:13px;font-weight:700;">
+      {ratio_icon} {ratio_str}</span>
+    <span style="font-size:12px;color:{ratio_color};">{ratio_note}</span>
+  </div>
+  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;">目标 ≤8:1 · 招聘120人</div>
 </div>""")
 
     # ── 候选人结果卡片 ────────────────────────────────────────────────────────
@@ -974,6 +1041,108 @@ def render_screening():
         # 卡片间隔
         st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
 
+    # ── HR 申诉管理面板 ───────────────────────────────────────────────────────
+    st.markdown('<div style="height:24px;"></div>', unsafe_allow_html=True)
+    all_appeals = get_all_appeals()
+    appeal_count = len(all_appeals)
+    with st.expander(
+        f"📬 申诉管理面板 {'· ' + str(appeal_count) + ' 条待处理' if appeal_count else '· 暂无申诉'}",
+        expanded=False
+    ):
+        if not all_appeals:
+            st.html("""
+<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">
+  📭 暂无候选人提交申诉
+</div>""")
+        else:
+            st.html(f"""
+<div style="font-size:13px;color:#6b7280;margin-bottom:12px;line-height:1.6;">
+  共 <strong style="color:#111827;">{appeal_count}</strong> 条申诉，
+  已结构化拆分为「维度 + 补充证据」格式，便于针对性复核。
+  复核基准为规则锁定版本（指纹不变），<strong>请仅处理有新证据的申诉</strong>。
+</div>""")
+            for ap in all_appeals:
+                ap_id      = ap["id"]
+                cid        = ap["candidate_id"]
+                cname      = ap["candidate_name"]
+                ap_text    = ap["appeal_text"]
+                status     = ap.get("status", "pending")
+                submitted  = ap.get("submitted_at", "")[:16]
+                cand_info  = CANDIDATES_MAP.get(cid)
+                school_tag = f"{cand_info['school']} · {cand_info['tag']}" if cand_info else ""
+
+                # 解析 ap_text：[label] evidence 格式
+                dim_items = []
+                for line in ap_text.split("\n"):
+                    line = line.strip()
+                    if line.startswith("[") and "]" in line:
+                        bracket_end = line.index("]")
+                        lbl = line[1:bracket_end]
+                        ev  = line[bracket_end+1:].strip()
+                        dim_items.append((lbl, ev))
+
+                dim_html = "".join(
+                    f"""<div style="background:#f9fafb;border:1px solid #f0f0f0;
+                                    border-radius:8px;padding:10px 14px;margin-bottom:6px;">
+  <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;">
+    {lbl}
+  </div>
+  <div style="font-size:12px;color:#4b5563;line-height:1.6;">{ev or "（未填写）"}</div>
+</div>"""
+                    for lbl, ev in dim_items
+                ) if dim_items else f'<div style="font-size:12px;color:#9ca3af;">{ap_text}</div>'
+
+                status_cfg = {
+                    "pending":  ("#fef3c7", "#92400e", "#fde68a", "待处理"),
+                    "reviewed": ("#f0fdf4", "#166534", "#86efac", "已复核"),
+                    "dismissed":("#fef2f2", "#991b1b", "#fecaca", "已驳回"),
+                }
+                s_bg, s_tc, s_border, s_txt = status_cfg.get(
+                    status, ("#f9fafb","#374151","#e5e7eb","未知"))
+
+                st.html(f"""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
+            padding:16px 18px;margin-bottom:4px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;
+              gap:16px;margin-bottom:10px;">
+    <div>
+      <span style="font-size:14px;font-weight:700;color:#111827;">{cname}</span>
+      <span style="font-size:12px;color:#9ca3af;margin-left:8px;">{school_tag}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <span style="background:{s_bg};color:{s_tc};border:1px solid {s_border};
+                   border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;">
+        {s_txt}</span>
+      <span style="font-size:11px;color:#c4c9d4;">{submitted}</span>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
+              letter-spacing:.06em;margin-bottom:8px;">质疑维度 · 补充证据</div>
+  {dim_html}
+</div>""")
+
+                if status == "pending":
+                    a_col, b_col, _ = st.columns([2, 2, 6])
+                    with a_col:
+                        if st.button("✅ 标记已复核", key=f"ap_rev_{ap_id}",
+                                     use_container_width=True, type="primary"):
+                            update_appeal_status(ap_id, "reviewed")
+                            st.toast(f"✅ {cname} 的申诉已标记为「已复核」")
+                            st.rerun()
+                    with b_col:
+                        if st.button("❌ 驳回申诉", key=f"ap_dis_{ap_id}",
+                                     use_container_width=True):
+                            update_appeal_status(ap_id, "dismissed")
+                            st.toast(f"已驳回 {cname} 的申诉")
+                            st.rerun()
+                else:
+                    st.markdown(
+                        f'<div style="font-size:12px;color:#9ca3af;padding:4px 0;">'
+                        f'此申诉已处理完毕（{s_txt}）</div>',
+                        unsafe_allow_html=True
+                    )
+                st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+
 
 # ─── Page 3：候选人视图 ───────────────────────────────────────────────────────
 def render_candidate_view():
@@ -982,25 +1151,42 @@ def render_candidate_view():
     at      = st.session_state.locked_at
     results = st.session_state.screening_results
 
-    st.html("""
+    st.html(f"""
+{"" if has_api_key() else _preset_mode_banner()}
 <div style="margin-bottom:16px;">
-  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">候选人视图</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">候选人视图</h2>
+    {_role_badge("候选人视角")}
+  </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">
     候选人登录后看到的页面（模拟）·
     维度结论可见，<span style="color:#ef4444;">分数不对外显示</span>
   </p>
 </div>""")
 
-    # 候选人选择器
+    # 候选人选择器（含结果颜色指示点）
+    _dot = {"强推进面试": "🟢", "待定": "🟡", "不推进": "🔴"}
     for grp_key, grp_label in [("pm","产品经理岗"), ("dev","后端开发岗")]:
         st.markdown(f'<p style="font-size:12px;color:#9ca3af;margin-bottom:4px;">{grp_label}</p>', unsafe_allow_html=True)
         grp_c = [c for c in CANDIDATES if c["job"] == grp_key]
         btn_cols = st.columns(len(grp_c))
         for i, c in enumerate(grp_c):
             with btn_cols[i]:
-                if st.button(c["name"], key=f"cv_{c['id']}"):
-                    st.session_state.cv_selected = c["id"]
-                    st.session_state[f"ao_{c['id']}"] = False
+                cid = c["id"]
+                # 获取该候选人最终结果（用于颜色点）
+                if cid in st.session_state.screening_results:
+                    _ai_r = st.session_state.screening_results[cid]["ai_result"]
+                else:
+                    _ai_r = c["result"]
+                _final_r, _ = _get_final(cid, _ai_r)
+                dot = _dot.get(_final_r, "⚪")
+                is_sel = st.session_state.get("cv_selected") == cid
+                btn_lbl = f"{dot} {c['name']}"
+                if st.button(btn_lbl, key=f"cv_{cid}",
+                             type="primary" if is_sel else "secondary",
+                             use_container_width=True):
+                    st.session_state.cv_selected = cid
+                    st.session_state[f"ao_{cid}"] = False
                     st.rerun()
         st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
 
@@ -1288,9 +1474,12 @@ def render_candidate_view():
 def render_pool_view():
     pool = st.session_state.pool
 
-    st.html("""
+    st.html(f"""
 <div style="margin-bottom:16px;">
-  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">简历备选池</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">简历备选池</h2>
+    {_role_badge("HR 视角")}
+  </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">跨岗位备选简历，供其他 HR 参考复用</p>
 </div>""")
 
@@ -1350,9 +1539,12 @@ def render_pool_view():
 
 # ─── Page 5：候选人规则验证 ──────────────────────────────────────────────────
 def render_verification():
-    st.html("""
+    st.html(f"""
 <div style="margin-bottom:16px;">
-  <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0 0 4px;">候选人规则验证</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">候选人规则验证</h2>
+    {_role_badge("候选人视角")}
+  </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">
     粘贴收到的岗位 JD → AI 提取评估维度 → 调整至与 HR 一致的权重 → 生成指纹 → 与邮件对比
   </p>
@@ -1370,38 +1562,73 @@ def render_verification():
   即可证明规则<strong>自发布后未被修改</strong>。
 </div>""")
 
-    # Step 1：输入 JD
-    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">① 粘贴岗位 JD（需包含「任职要求」部分）</p>')
-    jd_input = st.text_area(
-        "JD 文本",
-        key="verify_jd",
-        height=200,
-        placeholder="将招聘 JD 全文粘贴至此，系统将自动识别「任职要求」部分……",
-        label_visibility="collapsed",
-    )
-
     if not has_api_key():
+        # ── 离线演示模式：选择预设岗位，跳过 AI 提取 ──────────────────────
         st.html("""
-<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;
-            padding:10px 14px;font-size:12px;color:#92400e;margin-top:8px;">
-  ⚠ 当前未配置 API Key，无法调用 AI 提取。请配置后再使用此功能。
+<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;
+            padding:12px 18px;margin:8px 0 16px;
+            display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
+  <span style="font-size:18px;">📋</span>
+  <div>
+    <strong>离线演示模式</strong> — 未配置 API Key，AI 提取功能不可用。<br/>
+    <span style="font-size:12px;color:#b45309;">选择预设岗位可完整体验维度权重调整与规则指纹验证。</span>
+  </div>
 </div>""")
-        return
+        st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 8px;">① 选择预设岗位（替代 JD 文本输入）</p>')
+        _oc1, _oc2 = st.columns(2)
+        with _oc1:
+            if st.button("🎯 产品经理岗", key="offline_pm", use_container_width=True):
+                st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["pm"]["dims"])
+                st.session_state["offline_job"] = "pm"
+                for _d in JOB_PRESETS["pm"]["dims"]:
+                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                st.rerun()
+        with _oc2:
+            if st.button("⚙️ 后端开发岗", key="offline_dev", use_container_width=True):
+                st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["dev"]["dims"])
+                st.session_state["offline_job"] = "dev"
+                for _d in JOB_PRESETS["dev"]["dims"]:
+                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                st.rerun()
 
-    if st.button("🤖 AI 提取评估维度", key="verify_extract",
-                 disabled=not jd_input.strip(), type="primary"):
-        with st.spinner("AI 正在从任职要求中提取评估维度…"):
-            dims, err = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
-        if dims:
-            st.session_state["verify_dims"] = dims
-            for d in dims:
-                st.session_state[f"vw_{d['id']}"] = d["weight"]
-            st.rerun()
-        else:
-            st.error(f"维度提取失败：{err}")
+        _off_job = st.session_state.get("offline_job")
+        if _off_job:
+            _off_preset = JOB_PRESETS[_off_job]
+            st.html(f"""
+<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;
+            padding:10px 14px;margin:8px 0;font-size:13px;color:#166534;">
+  ✅ 已加载「{_off_preset["label"]}」预设维度（共 {len(_off_preset["dims"])} 个）
+  — 验证维度名称与权重的 Hash 计算过程同线上完全一致
+</div>""")
+            with st.expander("查看岗位 JD（参考原文）"):
+                st.code(_off_preset["jd"], language=None)
+    else:
+        # ── 在线模式：JD 文本输入 + AI 提取 ────────────────────────────
+        st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">① 粘贴岗位 JD（需包含「任职要求」部分）</p>')
+        jd_input = st.text_area(
+            "JD 文本",
+            key="verify_jd",
+            height=200,
+            placeholder="将招聘 JD 全文粘贴至此，系统将自动识别「任职要求」部分……",
+            label_visibility="collapsed",
+        )
+
+        if st.button("🤖 AI 提取评估维度", key="verify_extract",
+                     disabled=not jd_input.strip(), type="primary"):
+            with st.spinner("AI 正在从任职要求中提取评估维度…"):
+                dims, err = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
+            if dims:
+                st.session_state["verify_dims"] = dims
+                for d in dims:
+                    st.session_state[f"vw_{d['id']}"] = d["weight"]
+                st.rerun()
+            else:
+                st.error(f"维度提取失败：{err}")
 
     verify_dims = st.session_state.get("verify_dims")
     if not verify_dims:
+        if not has_api_key():
+            st.html('<p style="font-size:13px;color:#9ca3af;margin-top:8px;">👆 请先选择上方预设岗位</p>')
         return
 
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)

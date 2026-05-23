@@ -217,3 +217,12 @@ def get_all_appeals() -> list:
             "SELECT * FROM appeals ORDER BY submitted_at DESC"
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def update_appeal_status(appeal_id: int, new_status: str):
+    """更新申诉状态（pending → reviewed / dismissed）。"""
+    with _conn() as con:
+        con.execute(
+            "UPDATE appeals SET status = ? WHERE id = ?",
+            (new_status, appeal_id),
+        )

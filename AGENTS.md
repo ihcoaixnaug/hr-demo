@@ -101,14 +101,28 @@ DEFAULT_MODEL = "anthropic/claude-3.5-haiku"
 
 ## app.py 架构速览
 
-四个 Tab：
+五个 Tab：
 
-| Tab | 名称 | 关键函数 |
-|-----|------|---------|
-| Tab 1 | 规则构建 | `render_rule_builder()` |
-| Tab 2 | 筛选工作台 | `render_screening()` |
-| Tab 3 | 候选人视图 | `render_candidate_view()` |
-| Tab 4 | 简历备选池 | `render_pool()` |
+| Tab | 名称 | 视角标签 | 关键函数 |
+|-----|------|---------|---------|
+| Tab 1 | 规则构建 | HR 视角 | `render_rule_builder()` |
+| Tab 2 | 筛选工作台 | HR 视角 | `render_screening()` |
+| Tab 3 | 候选人视图 | 候选人视角 | `render_candidate_view()` |
+| Tab 4 | 简历备选池 | HR 视角 | `render_pool_view()` |
+| Tab 5 | 规则验证 | 候选人视角 | `render_verification()` |
+
+### Tab 2 专有功能
+
+- **漏斗推算**：基于本批强推率推算全量 12000 份简历的到面人数（到面比 ≤8:1 绿色，>8 红色）
+- **申诉管理面板**（`st.expander`，展开可见）：列出全部候选人提交的申诉，包含候选人姓名、质疑维度、补充证据，HR 可标记「已复核」或「驳回」
+
+### Tab 3 专有功能
+
+- **候选人切换按钮**：带颜色指示点（🟢强推/🟡待定/🔴不推进）+ 选中态 primary 样式，一目了然
+
+### Tab 5 专有功能
+
+- **离线演示模式**：无 API Key 时，可选择预设岗位（PM岗/Dev岗），跳过 AI 提取直接加载预设维度，继续完成权重调整 + 指纹生成演示
 
 ### 重要 session_state 键
 
@@ -131,15 +145,22 @@ DEFAULT_MODEL = "anthropic/claude-3.5-haiku"
 ## database.py 表结构
 
 ```sql
--- 候选人 AI 评分结果
-screenings(candidate_id, job_id, scores_json, reasons_json, ai_result, source, created_at)
-
--- HR 人工覆盖记录
-overrides(candidate_id, job_id, result, note, created_at)
-
--- 备选池（跨岗位候选人）
-pool(candidate_id, added_by, note, created_at)
+CREATE TABLE locked_rules (id, job_key, job_label, dims_json, fingerprint, locked_at, created_at)
+CREATE TABLE screening_results (id, candidate_id, rule_id, scores_json, reasons_json, ai_result, source, created_at)
+CREATE TABLE hr_overrides (id, candidate_id, rule_id, original_result, override_result, override_note, created_at)
+CREATE TABLE talent_pool (id, candidate_id, from_job_label, added_at)
+CREATE TABLE appeals (id, candidate_id, candidate_name, appeal_text, status DEFAULT 'pending', submitted_at)
 ```
+
+关键函数（全部已在 `app.py` 中 import）：
+
+| 函数 | 作用 |
+|------|------|
+| `save_appeal(cid, name, text)` | 候选人提交申诉 |
+| `get_all_appeals()` | HR 查看所有申诉列表 |
+| `update_appeal_status(id, status)` | HR 标记申诉为 reviewed / dismissed |
+| `save_hr_override(cid, rule_id, orig, new, note)` | HR 覆盖留痕 |
+| `get_screening_results(rule_id)` | 读取某规则下所有候选人评分 |
 
 ---
 
@@ -358,5 +379,18 @@ curl https://openrouter.ai/api/v1/models \
 - 院校名 → 从技术上彻底隔离（LLM 看不到 = 不可能用）
 - 机构名（字节跳动、某互联网公司等）→ 保留，属于经历事实的一部分
 - 学历（本科/硕士/博士）→ LLM 可见，但 prompt 明确禁止用作评分依据
+
+---
+
+### 功能迭代记录（commit `latest`）— 6项UI优化
+
+1. **Tab 5 离线兜底**：无 API Key 时不再直接 `return`，改为显示预设岗位选择按钮（PM岗/Dev岗），选后加载预设维度，后续的权重调整+指纹生成完全可用
+2. **HR 申诉管理面板**：Tab 2 筛选工作台末尾新增 expander「📬 申诉管理面板」，读取 `appeals` 表，展示候选人姓名+质疑维度+补充证据，支持标记「已复核」/「驳回」（调用 `update_appeal_status()`）
+3. **视角标签**：每个 Tab 标题旁加 `_role_badge("HR 视角")` 或 `_role_badge("候选人视角")` 彩色标签，demo 时听众一眼知道当前视角
+4. **业务漏斗推算**：Tab 2 汇总栏下方新增一排，公式：`预计进入面试 = round(12000 × 强推率)`，`到面比 = 进入面试数 / 120`，颜色判断：≤8:1 绿色/>8:1 红色
+5. **候选人切换器 UX**：Tab 3 选择器按钮带颜色点（🟢🟡🔴）+ 选中态 `type="primary"`，实时读取 screening_results 或预设 result 字段确定颜色
+6. **预设数据模式横幅**：Tab 2 和 Tab 3 在无 API Key 时顶部显示明显的黄色 banner，不再只依赖 header 和单卡片的 `📋 预设数据` 小标签
+
+新增辅助函数：`_role_badge(role)` 和 `_preset_mode_banner()`（均在 `app.py` 中 `_get_final()` 之后定义）
 
 *最后更新：2026-05-23*

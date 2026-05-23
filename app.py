@@ -28,17 +28,54 @@ st.set_page_config(
 # ─── 全局 CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+/* ══ 设计 Token ═══════════════════════════════════════════════════════════ */
+:root{
+  --bg:        #F5F3EF;
+  --surface:   #FEFCF9;
+  --surface-2: #F0EDE8;
+  --border:    #E3DED6;
+  --border-lt: #EDE9E2;
+  --tx-1:      #1A1714;
+  --tx-2:      #6B6560;
+  --tx-3:      #9E9994;
+  --shadow-sm: 0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04);
+  --shadow-md: 0 4px 14px rgba(28,23,20,.09),0 2px 4px rgba(28,23,20,.05);
+  --shadow-lg: 0 8px 28px rgba(28,23,20,.11),0 3px 8px rgba(28,23,20,.06);
+  --spring:    cubic-bezier(0.34,1.56,0.64,1);
+  --smooth:    cubic-bezier(0.4,0,0.2,1);
+  --ease-out:  cubic-bezier(0,0,0.2,1);
+}
+
+/* ══ 动效关键帧 ═══════════════════════════════════════════════════════════ */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(18px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes springIn{
+  0%  {opacity:0;transform:scale(.93) translateY(12px);}
+  55% {transform:scale(1.018) translateY(-2px);}
+  100%{opacity:1;transform:scale(1) translateY(0);}
+}
+@keyframes popIn{
+  0%  {opacity:0;transform:scale(.82);}
+  58% {transform:scale(1.07);}
+  100%{opacity:1;transform:scale(1);}
+}
+@keyframes shimmer{
+  0%,100%{opacity:.7;}50%{opacity:1;}
+}
+
 /* ══ 基础重置 ══════════════════════════════════════════════════════════════ */
 html,body,[class*="css"]{
   font-family:-apple-system,"PingFang SC","SF Pro Text",BlinkMacSystemFont,
     "Segoe UI",sans-serif!important;
   -webkit-font-smoothing:antialiased!important;
 }
-.stApp{background:#f0f2f5!important;}
+.stApp{background:var(--bg)!important;}
 .stMainBlockContainer,.block-container{
-  max-width:900px!important;
+  max-width:940px!important;
   margin:0 auto!important;
-  padding:20px 20px 100px!important;
+  padding:28px 24px 120px!important;
 }
 
 /* ══ 隐藏 Streamlit chrome ══════════════════════════════════════════════════ */
@@ -48,62 +85,66 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Tab 导航 ══════════════════════════════════════════════════════════════ */
 .stTabs [data-baseweb="tab-list"]{
-  background:white!important;
-  border:1px solid #e5e7eb!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
   border-radius:14px!important;
   padding:5px!important;
   gap:2px!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.07),0 0 0 0 transparent!important;
-  margin-bottom:6px!important;
+  box-shadow:var(--shadow-sm)!important;
+  margin-bottom:8px!important;
   display:flex!important;
   width:100%!important;
 }
 .stTabs [data-baseweb="tab"]{
   background:transparent!important;
-  color:#6b7280!important;
+  color:var(--tx-2)!important;
   font-size:13px!important;
   font-weight:500!important;
   padding:7px 14px!important;
   border-radius:10px!important;
   margin:0!important;
-  transition:all .18s ease!important;
+  transition:all .22s var(--smooth)!important;
   white-space:nowrap!important;
   flex:1!important;
   justify-content:center!important;
   display:flex!important;
 }
 .stTabs [aria-selected="true"]{
-  color:#1d4ed8!important;
-  background:linear-gradient(135deg,#eff6ff,#e0eaff)!important;
+  color:var(--tx-1)!important;
+  background:var(--surface-2)!important;
   font-weight:700!important;
-  box-shadow:0 1px 3px rgba(59,130,246,.18)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]){
+  color:var(--tx-1)!important;
+  background:var(--surface-2)!important;
 }
 .stTabs [data-baseweb="tab-highlight"]{display:none!important;}
 .stTabs [data-baseweb="tab-border"]{display:none!important;}
-.stTabs [data-baseweb="tab-panel"]{padding:14px 0 0!important;}
+.stTabs [data-baseweb="tab-panel"]{padding:16px 0 0!important;}
 
 /* ══ Primary 按钮 ══════════════════════════════════════════════════════════ */
 .stButton>button[kind="primary"]{
-  background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%)!important;
-  color:white!important;
+  background:var(--tx-1)!important;
+  color:#FEFCF9!important;
   border:none!important;
   border-radius:10px!important;
   font-size:14px!important;
   font-weight:600!important;
   padding:10px 24px!important;
   letter-spacing:.01em!important;
-  box-shadow:0 2px 10px rgba(37,99,235,.30),0 1px 2px rgba(0,0,0,.12)!important;
-  transition:all .18s ease!important;
+  box-shadow:0 2px 8px rgba(28,23,20,.22),0 1px 2px rgba(28,23,20,.14)!important;
+  transition:all .28s var(--spring)!important;
   white-space:nowrap!important;
 }
 .stButton>button[kind="primary"]:hover:not(:disabled){
-  background:linear-gradient(135deg,#1d4ed8 0%,#312e81 100%)!important;
-  box-shadow:0 4px 16px rgba(37,99,235,.40),0 2px 4px rgba(0,0,0,.14)!important;
-  transform:translateY(-1px)!important;
+  background:#3D3530!important;
+  box-shadow:0 6px 20px rgba(28,23,20,.26),0 2px 6px rgba(28,23,20,.14)!important;
+  transform:translateY(-2px)!important;
 }
 .stButton>button[kind="primary"]:active:not(:disabled){
-  transform:translateY(0)!important;
-  box-shadow:0 1px 4px rgba(37,99,235,.25)!important;
+  transform:translateY(0) scale(.98)!important;
+  box-shadow:0 1px 4px rgba(28,23,20,.18)!important;
 }
 
 /* ══ Secondary / 默认按钮 ══════════════════════════════════════════════════ */
@@ -112,84 +153,88 @@ header[data-testid="stHeader"]{display:none!important;}
   font-size:13px!important;
   font-weight:500!important;
   padding:7px 14px!important;
-  border:1px solid #e2e8f0!important;
-  color:#374151!important;
-  background:white!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.06)!important;
-  transition:all .15s ease!important;
+  border:1px solid var(--border)!important;
+  color:var(--tx-1)!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
+  transition:all .24s var(--spring)!important;
   white-space:nowrap!important;
   overflow:visible!important;
 }
 .stButton>button:hover:not(:disabled){
-  border-color:#93c5fd!important;
-  background:#f5f8ff!important;
-  color:#1d4ed8!important;
-  box-shadow:0 2px 8px rgba(59,130,246,.15)!important;
+  border-color:#C4BCB2!important;
+  background:var(--surface-2)!important;
+  color:var(--tx-1)!important;
+  box-shadow:var(--shadow-md)!important;
   transform:translateY(-1px)!important;
 }
-.stButton>button:active:not(:disabled){transform:translateY(0)!important;}
-.stButton>button:disabled{opacity:.38!important;cursor:not-allowed!important;}
+.stButton>button:active:not(:disabled){
+  transform:translateY(0) scale(.98)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.stButton>button:disabled{opacity:.36!important;cursor:not-allowed!important;}
 
 /* ══ Slider ══════════════════════════════════════════════════════════════ */
 [data-testid="stSlider"] [role="slider"]{
-  background:#2563eb!important;
-  box-shadow:0 0 0 3px rgba(37,99,235,.18)!important;
+  background:var(--tx-1)!important;
+  box-shadow:0 0 0 3px rgba(28,23,20,.14)!important;
 }
 [data-testid="stSlider"] [data-testid="stSliderThumbValue"]{
-  background:#1d4ed8!important;color:white!important;
+  background:var(--tx-1)!important;color:#FEFCF9!important;
   font-family:monospace!important;font-size:11px!important;
   border-radius:5px!important;
-  box-shadow:0 2px 6px rgba(29,78,216,.3)!important;
 }
 [data-testid="stSlider"] > div > div > div > div{
-  background:linear-gradient(to right,#3b82f6,#2563eb)!important;
+  background:var(--tx-1)!important;
   border-radius:999px!important;
 }
-[data-testid="stSlider"] label{font-size:13px!important;font-weight:500!important;color:#374151!important;}
+[data-testid="stSlider"] label{font-size:13px!important;font-weight:500!important;color:var(--tx-1)!important;}
 
 /* ══ Input / Textarea ══════════════════════════════════════════════════════ */
 .stTextInput input,.stTextArea textarea{
   border-radius:10px!important;
-  border:1.5px solid #e5e7eb!important;
+  border:1.5px solid var(--border)!important;
   font-size:13.5px!important;
-  color:#1f2937!important;
-  background:white!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.05)!important;
-  transition:border-color .15s,box-shadow .15s!important;
+  color:var(--tx-1)!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
+  transition:border-color .18s var(--smooth),box-shadow .18s var(--smooth)!important;
 }
 .stTextInput input:focus,.stTextArea textarea:focus{
-  border-color:#60a5fa!important;
-  box-shadow:0 0 0 3px rgba(59,130,246,.14)!important;
+  border-color:#A8A09A!important;
+  box-shadow:0 0 0 3px rgba(28,23,20,.10)!important;
   outline:none!important;
 }
 .stTextArea label,.stTextInput label{
-  font-size:12px!important;color:#6b7280!important;font-weight:500!important;
+  font-size:12px!important;color:var(--tx-2)!important;font-weight:500!important;
 }
 
 /* ══ Checkbox ══════════════════════════════════════════════════════════════ */
-.stCheckbox label{font-size:13.5px!important;color:#374151!important;}
-.stCheckbox [data-testid="stCheckbox"]:hover label{color:#1d4ed8!important;}
+.stCheckbox label{font-size:13.5px!important;color:var(--tx-1)!important;}
+.stCheckbox [data-testid="stCheckbox"]:hover label{color:var(--tx-1)!important;}
 
 /* ══ Metric 卡片 ══════════════════════════════════════════════════════════ */
 [data-testid="metric-container"]{
-  background:white!important;
-  border:1px solid #e5e7eb!important;
-  border-radius:14px!important;
-  padding:18px 20px!important;
-  box-shadow:0 2px 8px rgba(0,0,0,.06),0 0 0 0 transparent!important;
-  transition:box-shadow .2s!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:16px!important;
+  padding:20px 22px!important;
+  box-shadow:var(--shadow-sm)!important;
+  transition:box-shadow .28s var(--spring),transform .28s var(--spring)!important;
+  animation:fadeUp .5s var(--ease-out) both!important;
 }
 [data-testid="metric-container"]:hover{
-  box-shadow:0 4px 14px rgba(0,0,0,.10)!important;
+  box-shadow:var(--shadow-md)!important;
+  transform:translateY(-2px)!important;
 }
 [data-testid="stMetricValue"]{
   font-size:26px!important;font-weight:800!important;
-  color:#111827!important;letter-spacing:-.02em!important;
+  color:var(--tx-1)!important;letter-spacing:-.02em!important;
 }
 [data-testid="stMetricLabel"]{
-  font-size:11.5px!important;color:#9ca3af!important;
+  font-size:11.5px!important;color:var(--tx-3)!important;
   font-weight:500!important;text-transform:uppercase!important;
-  letter-spacing:.04em!important;
+  letter-spacing:.05em!important;
 }
 
 /* ══ Alerts ══════════════════════════════════════════════════════════════ */
@@ -197,35 +242,42 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Expander ══════════════════════════════════════════════════════════════ */
 .stExpander{
-  border:1px solid #e5e7eb!important;
+  border:1px solid var(--border)!important;
   border-radius:14px!important;
-  background:white!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.06)!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
   overflow:hidden!important;
+  transition:box-shadow .24s var(--spring)!important;
 }
+.stExpander:hover{box-shadow:var(--shadow-md)!important;}
 .stExpander summary{
-  font-size:13px!important;font-weight:600!important;color:#374151!important;
+  font-size:13px!important;font-weight:600!important;color:var(--tx-1)!important;
   padding:12px 16px!important;
 }
-.stExpander summary:hover{background:#f9fafb!important;}
+.stExpander summary:hover{background:var(--surface-2)!important;}
 
 /* ══ Border container ══════════════════════════════════════════════════════ */
 div[data-testid="stVerticalBlockBorderWrapper"]{
   border-radius:16px!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
-  border:1px solid #e5e7eb!important;
-  background:white!important;
+  box-shadow:var(--shadow-sm)!important;
+  border:1px solid var(--border)!important;
+  background:var(--surface)!important;
+  transition:box-shadow .28s var(--spring)!important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:hover{
+  box-shadow:var(--shadow-md)!important;
 }
 
 /* ══ Progress bar ══════════════════════════════════════════════════════════ */
 [data-testid="stProgress"] > div > div{
-  background:linear-gradient(to right,#3b82f6,#2563eb)!important;
+  background:var(--tx-1)!important;
   border-radius:999px!important;
+  transition:width .4s var(--ease-out)!important;
 }
 
 /* ══ 全局间距 ══════════════════════════════════════════════════════════════ */
-.element-container{margin-bottom:4px!important;}
-div[data-testid="stVerticalBlock"]>div{gap:6px!important;}
+.element-container{margin-bottom:6px!important;}
+div[data-testid="stVerticalBlock"]>div{gap:8px!important;}
 
 /* ══ 候选人卡片操作按钮行：确保文字不截断 ═══════════════════════════════════ */
 .cand-action-btn .stButton>button{
@@ -236,15 +288,25 @@ div[data-testid="stVerticalBlock"]>div{gap:6px!important;}
 }
 
 /* ══ Divider ══════════════════════════════════════════════════════════════ */
-hr{border:none!important;border-top:1px solid #f0f0f0!important;margin:8px 0!important;}
+hr{border:none!important;border-top:1px solid var(--border-lt)!important;margin:10px 0!important;}
 
 /* ══ Caption ══════════════════════════════════════════════════════════════ */
 .stCaption,.stCaption p{
-  font-size:12px!important;color:#9ca3af!important;line-height:1.5!important;
+  font-size:12px!important;color:var(--tx-3)!important;line-height:1.5!important;
 }
 
 /* ══ 隐藏 textarea 的 ⌘+Enter 提示 ══════════════════════════════════════ */
 [data-testid="InputInstructions"]{display:none!important;}
+
+/* ══ 卡片入场动效 — 错落节奏 ════════════════════════════════════════════════ */
+.stHtml:nth-child(1){animation:fadeUp .38s var(--ease-out) .04s both;}
+.stHtml:nth-child(2){animation:fadeUp .38s var(--ease-out) .08s both;}
+.stHtml:nth-child(3){animation:fadeUp .38s var(--ease-out) .12s both;}
+.stHtml:nth-child(4){animation:fadeUp .38s var(--ease-out) .16s both;}
+.stHtml:nth-child(5){animation:fadeUp .38s var(--ease-out) .20s both;}
+.stHtml:nth-child(6){animation:fadeUp .38s var(--ease-out) .23s both;}
+.stHtml:nth-child(7){animation:fadeUp .38s var(--ease-out) .26s both;}
+.stHtml:nth-child(8){animation:fadeUp .38s var(--ease-out) .28s both;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -284,23 +346,23 @@ _sync_pool()
 # ─── HTML 辅助函数 ────────────────────────────────────────────────────────────
 
 COLOR_MAP = {
-    "green":  {"bg":"#f0fdf4","border":"#86efac","badge_bg":"#dcfce7","badge_text":"#166534"},
-    "yellow": {"bg":"#fffbeb","border":"#fde68a","badge_bg":"#fef3c7","badge_text":"#92400e"},
-    "red":    {"bg":"#fef2f2","border":"#fecaca","badge_bg":"#fee2e2","badge_text":"#991b1b"},
+    "green":  {"bg":"#F2FBF4","border":"#A7D9B3","badge_bg":"#DDF3E4","badge_text":"#166534"},
+    "yellow": {"bg":"#FFFBEB","border":"#F5D87A","badge_bg":"#FEF3C7","badge_text":"#92400E"},
+    "red":    {"bg":"#FEF4F4","border":"#F5B8B8","badge_bg":"#FEE2E2","badge_text":"#991B1B"},
 }
 TAG_COLOR = {
-    "985":  ("bg:#ede9fe","color:#5b21b6"),
-    "211":  ("bg:#dbeafe","color:#1e40af"),
-    "双非": ("bg:#f3f4f6","color:#4b5563"),
-    "职校": ("bg:#fff7ed","color:#c2410c"),
-    "自学": ("bg:#f0fdf4","color:#166534"),
+    "985":  ("bg:#F0EDF8","color:#5B21B6"),
+    "211":  ("bg:#EEF2F8","color:#2D4A7A"),
+    "双非": ("bg:#F0EDE8","color:#5C5248"),
+    "职校": ("bg:#FEF5EC","color:#B45309"),
+    "自学": ("bg:#EEF6EE","color:#1A5C2A"),
 }
 DEGREE_COLOR = {
-    "本科": ("bg:#eff6ff","color:#1d4ed8"),
-    "硕士": ("bg:#faf5ff","color:#7c3aed"),
-    "博士": ("bg:#fdf4ff","color:#a21caf"),
-    "大专": ("bg:#fff7ed","color:#b45309"),
-    "高中": ("bg:#f0fdf4","color:#15803d"),
+    "本科": ("bg:#EEF2F8","color:#2D4A7A"),
+    "硕士": ("bg:#F3EFF8","color:#5B35A0"),
+    "博士": ("bg:#F8EEF5","color:#8B2088"),
+    "大专": ("bg:#FEF5EC","color:#B45309"),
+    "高中": ("bg:#EEF6EE","color:#1A5C2A"),
 }
 
 def _tag(tag: str) -> str:
@@ -324,26 +386,26 @@ def _bars(scores: dict, dims: list) -> str:
     for d in dims:
         v = scores.get(d["id"], 0)
         if v >= 80:
-            bar_color = "linear-gradient(to right,#34d399,#10b981)"
-            num_color = "#059669"
+            bar_color = "linear-gradient(to right,#4ADE80,#22C55E)"
+            num_color = "#166534"
         elif v >= 65:
-            bar_color = "linear-gradient(to right,#60a5fa,#3b82f6)"
-            num_color = "#2563eb"
+            bar_color = "linear-gradient(to right,#86EFAC,#4ADE80)"
+            num_color = "#1A5C2A"
         elif v >= 50:
-            bar_color = "linear-gradient(to right,#fbbf24,#f59e0b)"
-            num_color = "#d97706"
+            bar_color = "linear-gradient(to right,#FCD34D,#F59E0B)"
+            num_color = "#92400E"
         else:
-            bar_color = "linear-gradient(to right,#f87171,#ef4444)"
-            num_color = "#dc2626"
+            bar_color = "linear-gradient(to right,#FCA5A5,#F87171)"
+            num_color = "#991B1B"
         rows.append(f"""
 <div style="display:grid;grid-template-columns:8rem 1fr 2.2rem;gap:8px;
-            align-items:center;margin-bottom:7px;">
-  <span style="font-size:12px;color:#6b7280;white-space:nowrap;">
-    {d["label"]}<span style="color:#d1d5db;font-size:11px;margin-left:3px;">{d["weight"]}%</span>
+            align-items:center;margin-bottom:8px;">
+  <span style="font-size:12px;color:#6B6560;white-space:nowrap;">
+    {d["label"]}<span style="color:#C4BCB2;font-size:11px;margin-left:3px;">{d["weight"]}%</span>
   </span>
-  <div style="background:#f1f5f9;border-radius:999px;height:7px;overflow:hidden;">
-    <div style="width:{v}%;height:7px;background:{bar_color};
-                border-radius:999px;transition:width .5s ease;"></div>
+  <div style="background:#EDE9E2;border-radius:999px;height:6px;overflow:hidden;">
+    <div style="width:{v}%;height:6px;background:{bar_color};
+                border-radius:999px;transition:width .6s cubic-bezier(0,0,.2,1);"></div>
   </div>
   <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:12px;
                font-weight:700;color:{num_color};text-align:right;">{v}</span>
@@ -358,12 +420,12 @@ def _get_final(cid: str, ai_result: str):
 
 
 def _role_badge(role: str) -> str:
-    """渲染视角标签：HR视角（蓝）/ 候选人视角（绿）"""
+    """渲染视角标签：HR视角 / 候选人视角"""
     cfg = {
-        "HR 视角":   ("#eff6ff", "#1d4ed8", "#bfdbfe", "👔"),
-        "候选人视角": ("#f0fdf4", "#166534", "#86efac", "🎓"),
+        "HR 视角":   ("#EEF2F8", "#2D4A7A", "#C8D4E8", "👔"),
+        "候选人视角": ("#EEF6EE", "#1A5C2A", "#A7D9B3", "🎓"),
     }
-    bg, tc, border, icon = cfg.get(role, ("#f9fafb", "#374151", "#e5e7eb", "👤"))
+    bg, tc, border, icon = cfg.get(role, ("#F0EDE8", "#5C5248", "#D4CFC8", "👤"))
     return (
         f'<span style="background:{bg};color:{tc};border:1px solid {border};'
         f'border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;">'
@@ -474,11 +536,11 @@ def render_header():
             display:flex;align-items:center;justify-content:space-between;gap:12px;">
   <div style="display:flex;align-items:center;gap:14px;">
     <div style="width:40px;height:40px;flex-shrink:0;
-                background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%);
+                background:#1A1714;
                 border-radius:12px;
                 display:flex;align-items:center;justify-content:center;
-                box-shadow:0 3px 10px rgba(37,99,235,.35);">
-      <span style="color:white;font-weight:900;font-size:17px;letter-spacing:-.5px;">智</span>
+                box-shadow:0 3px 10px rgba(28,23,20,.30);">
+      <span style="color:#FEFCF9;font-weight:900;font-size:17px;letter-spacing:-.5px;">智</span>
     </div>
     <div style="line-height:1.2;">
       <div style="font-weight:800;font-size:18px;color:#111827;letter-spacing:-.02em;">智筛 AI</div>
@@ -512,9 +574,9 @@ def render_rule_builder():
                 for d in dims_l
             )
             st.markdown(f"""
-<div style="background:linear-gradient(160deg,#111827 0%,#1e1b4b 100%);
-            border-radius:18px;padding:22px 24px;color:white;margin-bottom:0;
-            box-shadow:0 4px 20px rgba(17,24,39,.35);">
+<div style="background:linear-gradient(160deg,#1A1714 0%,#2D2825 100%);
+            border-radius:18px;padding:22px 24px;color:#FEFCF9;margin-bottom:0;
+            box-shadow:0 4px 20px rgba(28,23,20,.30);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
     <span style="font-size:16px;">🔒</span>
     <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">{jl_l} · 规则已锁定 · 不可修改</span>
@@ -530,7 +592,7 @@ def render_rule_builder():
       规则内容改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
     </p>
   </div>
-  <div style="font-size:12px;color:#93c5fd;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+  <div style="font-size:12px;color:#9E9994;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
     <span>🔗</span>
     <span>规则已同步公示页，候选人收到的投递确认邮件含本指纹</span>
   </div>
@@ -641,8 +703,8 @@ def render_rule_builder():
     if dims_from_ai:
         st.html(f"""
 <div style="display:flex;align-items:center;gap:8px;
-            background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;
-            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#1e40af;">
+            background:#F5F3EF;border:1px solid #D4CFC8;border-radius:10px;
+            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#3D3A36;">
   <span style="font-size:15px;">🤖</span>
   <span>AI 已从「<strong>{preset["label"]}」JD 任职要求</strong>提取维度（每条要求对应一个维度），可调整权重后锁定</span>
 </div>""")
@@ -752,7 +814,7 @@ def render_screening():
   </div>
   <p style="font-size:14px;color:#6b7280;margin:0;">
     AI 按锁定规则逐条评分 · 每条结论追溯维度 ·
-    <span style="background:#eff6ff;color:#1d4ed8;border-radius:999px;
+    <span style="background:#EDE9E2;color:#1A1714;border-radius:999px;
                  padding:1px 8px;font-size:12px;font-weight:600;">{preset["label"]}</span>
   </p>
 </div>""")
@@ -882,18 +944,18 @@ def render_screening():
                 letter-spacing:.05em;margin-bottom:6px;">不推进</div>
     <div style="font-size:28px;font-weight:800;color:#991b1b;letter-spacing:-.03em;">{rej}</div>
   </div>
-  <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;
-              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(59,130,246,.08);">
-    <div style="font-size:11px;font-weight:600;color:#1e40af;text-transform:uppercase;
+  <div style="background:#F5F3EF;border:1px solid #D4CFC8;
+              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(28,23,20,.06);">
+    <div style="font-size:11px;font-weight:600;color:#6B6560;text-transform:uppercase;
                 letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
       AI 自动处理
       <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;无需 HR 介入；剩余待定 {p_n} 份需人工复核"
             style="display:inline-flex;align-items:center;justify-content:center;
-                   width:14px;height:14px;border-radius:50%;border:1.5px solid #93c5fd;
-                   color:#3b82f6;font-size:9px;font-weight:700;cursor:default;flex-shrink:0;">?</span>
+                   width:14px;height:14px;border-radius:50%;border:1.5px solid #C4BCB2;
+                   color:#9E9994;font-size:9px;font-weight:700;cursor:default;flex-shrink:0;">?</span>
     </div>
-    <div style="font-size:28px;font-weight:800;color:#1e40af;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
-    <div style="font-size:11px;color:#93c5fd;margin-top:4px;">系统设计目标 ≥ 80%</div>
+    <div style="font-size:28px;font-weight:800;color:#1A1714;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
+    <div style="font-size:11px;color:#9E9994;margin-top:4px;">系统设计目标 ≥ 80%</div>
   </div>
 </div>""")
 
@@ -963,10 +1025,10 @@ def render_screening():
                                        results[_top_ne_cand["id"]]["ai_result"])
             if _final_ne == "强推进面试":
                 st.html(f"""
-<div style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);
+<div style="background:linear-gradient(135deg,#1A1714 0%,#2D2825 100%);
             border-radius:16px;padding:18px 22px;margin-bottom:16px;
-            border:1px solid rgba(110,231,183,.25);
-            box-shadow:0 4px 20px rgba(17,24,39,.3);">
+            border:1px solid rgba(74,222,128,.20);
+            box-shadow:0 4px 20px rgba(28,23,20,.28);">
   <div style="display:flex;align-items:flex-start;gap:14px;">
     <span style="font-size:28px;flex-shrink:0;">⚡</span>
     <div>
@@ -1084,7 +1146,7 @@ def render_screening():
         # ── 展开：理由 + HR 覆盖 ──────────────────────────────────────────────
         if is_expanded:
             reasons_html = "".join(
-                f"""<div style="background:#f8faff;border:1px solid #e8eeff;border-radius:8px;
+                f"""<div style="background:#F5F3EF;border:1px solid #D4CFC8;border-radius:8px;
                               padding:10px 14px;margin-bottom:8px;">
   <div style="font-size:11px;font-weight:700;color:#4f46e5;
               letter-spacing:.04em;margin-bottom:6px;">{d["label"]}</div>
@@ -1415,7 +1477,7 @@ def render_candidate_view():
             padding:40px 32px 28px;text-align:center;margin-top:24px;
             box-shadow:0 4px 20px rgba(0,0,0,.08);">
   <div style="width:52px;height:52px;border-radius:16px;margin:0 auto 16px;
-              background:linear-gradient(135deg,#2563eb,#1e1b4b);
+              background:#1A1714;
               display:flex;align-items:center;justify-content:center;">
     <span style="color:white;font-size:22px;">🎓</span>
   </div>
@@ -1498,9 +1560,9 @@ def render_candidate_view():
     </span>
     点击展开演示说明 · 候选人不可见
   </summary>
-  <div style="background:linear-gradient(135deg,#eff6ff,#f0f5ff);
-              border:1px solid #bfdbfe;border-radius:0 0 10px 10px;
-              padding:12px 18px;font-size:13px;color:#1e40af;line-height:1.65;">
+  <div style="background:#F5F3EF;
+              border:1px solid #D4CFC8;border-radius:0 0 10px 10px;
+              padding:12px 18px;font-size:13px;color:#3D3A36;line-height:1.65;">
     💡 {NOTES[sel]}
   </div>
 </details>""")
@@ -1570,15 +1632,15 @@ def render_candidate_view():
     {dim_rows}
 
     <!-- 规则指纹 -->
-    <div style="background:#f8faff;border:1px solid #dbeafe;border-radius:12px;
+    <div style="background:#F5F3EF;border:1px solid #D4CFC8;border-radius:12px;
                 padding:14px 18px;margin-top:18px;">
-      <p style="font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;
+      <p style="font-size:11px;font-weight:700;color:#6B6560;text-transform:uppercase;
                  letter-spacing:.06em;margin:0 0 8px;">本次评估适用规则版本</p>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-family:'SF Mono',ui-monospace,monospace;
-                     background:white;border:1px solid #bfdbfe;border-radius:8px;
+                     background:white;border:1px solid #D4CFC8;border-radius:8px;
                      padding:5px 14px;font-size:16px;font-weight:800;
-                     letter-spacing:.15em;color:#1e40af;">
+                     letter-spacing:.15em;color:#3D3A36;">
           {display_fp}
         </span>
         <span style="font-size:12px;color:#6b7280;">投递时已发送至您的邮箱</span>
@@ -1655,12 +1717,12 @@ def render_candidate_view():
 </div>""")
             else:
                 st.html("""
-<div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:14px;
+<div style="background:#F5F3EF;border:1.5px solid #D4CFC8;border-radius:14px;
             padding:16px 20px;margin-bottom:12px;">
-  <div style="font-size:14px;font-weight:700;color:#1e40af;margin-bottom:6px;">
+  <div style="font-size:14px;font-weight:700;color:#1A1714;margin-bottom:6px;">
     📋 申诉复核完成 · 维持原结论
   </div>
-  <div style="font-size:13px;color:#1d4ed8;line-height:1.65;">
+  <div style="font-size:13px;color:#6B6560;line-height:1.65;">
     校招团队已对您申诉的维度进行人工复核，基于现有材料，<strong>原评估结论不变</strong>。<br/>
     如有新的可核实证据（项目链接、证书等），可通过投递邮箱补充后再次申请。
   </div>
@@ -1711,8 +1773,8 @@ def render_candidate_view():
   </div>
   <p style="font-size:12.5px;color:#4b5563;line-height:1.7;margin:0 0 10px;">
     <strong style="color:#374151;">AI 判断依据：</strong>{rv}</p>
-  <div style="background:#f8faff;border-radius:8px;padding:9px 12px;
-              font-size:12px;color:#3b82f6;line-height:1.55;">
+  <div style="background:#F5F3EF;border-radius:8px;padding:9px 12px;
+              font-size:12px;color:#6B6560;line-height:1.55;">
     💬 如您认为上述依据存在遗漏，请在申诉补充材料中提供具体证明（项目链接、作品集等）
   </div>
 </div>""")
@@ -1944,8 +2006,8 @@ def render_verification():
 
     # 原理说明
     st.html("""
-<div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;
-            padding:16px 18px;font-size:13px;color:#1e40af;line-height:1.7;margin-bottom:16px;">
+<div style="background:#F5F3EF;border:1px solid #D4CFC8;border-radius:12px;
+            padding:16px 18px;font-size:13px;color:#3D3A36;line-height:1.7;margin-bottom:16px;">
   <strong>🔍 验证原理</strong><br/>
   规则指纹（Hash）由「<strong>维度名称 + 权重</strong>」列表计算得出。
   由于评估维度与 JD 任职要求<strong>一一对应</strong>，只要你手上有相同的 JD 原文，
@@ -1953,7 +2015,7 @@ def render_verification():
   将权重调整为与 HR 公示的权重相同后，生成的指纹若与邮件中的一致，
   即可证明规则<strong>自发布后未被修改</strong>。<br/><br/>
   <strong>📌 本系统使用模型</strong>：<code>claude-3.5-haiku</code>（经由 OpenRouter）。
-  候选人可在 <a href="https://openrouter.ai" target="_blank" style="color:#2563eb;">openrouter.ai</a>
+  候选人可在 <a href="https://openrouter.ai" target="_blank" style="color:#2D4A7A;text-decoration:underline;">openrouter.ai</a>
   选择同款模型，粘贴相同 JD 原文，所提取的维度名称应与公示页完全一致。
 </div>""")
 
@@ -2202,12 +2264,12 @@ st.components.v1.html("""
   onmouseleave="this.style.transform='scale(1)'"
   title="回到顶部"
   style="width:48px;height:48px;border-radius:50%;
-         background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%);
-         color:white;border:none;cursor:pointer;
+         background:#1A1714;
+         color:#FEFCF9;border:none;cursor:pointer;
          font-size:24px;font-weight:700;line-height:1;
-         box-shadow:0 4px 20px rgba(37,99,235,.50),0 1px 4px rgba(0,0,0,.18);
+         box-shadow:0 4px 20px rgba(28,23,20,.38),0 1px 4px rgba(0,0,0,.14);
          display:flex;align-items:center;justify-content:center;
-         transition:transform .18s;
+         transition:transform .28s cubic-bezier(0.34,1.56,0.64,1);
          margin:4px;">&#8679;</button>
 <script>
 (function fix(){

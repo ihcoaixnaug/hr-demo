@@ -28,30 +28,30 @@ st.set_page_config(
 # ─── 全局 CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* ══ 设计 Token — Optima 琥珀配色 ════════════════════════════════════════ */
+/* ══ 设计 Token ═══════════════════════════════════════════════════════════ */
 :root{
-  --bg:        #ECF0F7;   /* cool light blue-gray (Optima bg) */
-  --surface:   #FFFFFF;   /* pure white cards */
-  --surface-2: #F2F6FB;   /* light blue-tinted surface */
-  --border:    #DDE5F0;   /* cool blue-gray border */
-  --border-lt: #E6EEF8;   /* lighter border */
-  --tx-1:      #1A2B3C;   /* dark navy */
-  --tx-2:      #5E7288;   /* medium blue-gray */
-  --tx-3:      #96ABBE;   /* light blue-gray */
+  --bg:        #F5F4F0;
+  --surface:   #FEFDFB;
+  --surface-2: #EFF0EC;
+  --border:    #E2DED7;
+  --border-lt: #ECE9E3;
+  --tx-1:      #1C1B18;
+  --tx-2:      #6A6660;
+  --tx-3:      #9E9A94;
 
-  /* amber/golden 主色（Optima 风格，去荧光） */
-  --amber:      #D49828;
-  --amber-lt:   #FEF4DF;
-  --amber-md:   #EFC45A;
-  --amber-dark: #A87618;
+  /* mint/sage 主色 */
+  --mint:      #6AADA0;
+  --mint-lt:   #E8F3F1;
+  --mint-md:   #A8D4CE;
+  --mint-dark: #4A897E;
 
-  /* shadow（cooler tone） */
-  --shadow-neo-sm: 4px 4px 10px rgba(26,43,60,.07),-2px -2px 6px rgba(255,255,255,.88);
-  --shadow-neo-md: 6px 6px 16px rgba(26,43,60,.09),-3px -3px 9px rgba(255,255,255,.90);
-  --shadow-neo-in: inset 2px 2px 5px rgba(26,43,60,.07),inset -2px -2px 5px rgba(255,255,255,.85);
-  --shadow-sm: 0 1px 3px rgba(26,43,60,.07),0 1px 2px rgba(26,43,60,.04);
-  --shadow-md: 0 4px 14px rgba(26,43,60,.09),0 2px 4px rgba(26,43,60,.05);
-  --shadow-lg: 0 8px 28px rgba(26,43,60,.11),0 3px 8px rgba(26,43,60,.06);
+  /* neumorphic 阴影 */
+  --shadow-neo-sm: 4px 4px 10px rgba(28,23,20,.07),-2px -2px 6px rgba(255,255,255,.82);
+  --shadow-neo-md: 6px 6px 16px rgba(28,23,20,.09),-3px -3px 9px rgba(255,255,255,.85);
+  --shadow-neo-in: inset 2px 2px 5px rgba(28,23,20,.08),inset -2px -2px 5px rgba(255,255,255,.8);
+  --shadow-sm: 0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04);
+  --shadow-md: 0 4px 14px rgba(28,23,20,.09),0 2px 4px rgba(28,23,20,.05);
+  --shadow-lg: 0 8px 28px rgba(28,23,20,.11),0 3px 8px rgba(28,23,20,.06);
   --spring:    cubic-bezier(0.34,1.56,0.64,1);
   --smooth:    cubic-bezier(0.4,0,0.2,1);
   --ease-out:  cubic-bezier(0,0,0.2,1);
@@ -125,13 +125,13 @@ header[data-testid="stHeader"]{display:none!important;}
 }
 .stTabs [aria-selected="true"]{
   color:#fff!important;
-  background:var(--amber)!important;
+  background:var(--mint)!important;
   font-weight:700!important;
-  box-shadow:0 2px 8px rgba(212,152,40,.35),0 1px 3px rgba(212,152,40,.25)!important;
+  box-shadow:0 2px 8px rgba(106,173,160,.35),0 1px 3px rgba(106,173,160,.25)!important;
 }
 .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]){
   color:var(--tx-1)!important;
-  background:var(--amber-lt)!important;
+  background:var(--mint-lt)!important;
 }
 .stTabs [data-baseweb="tab-highlight"]{display:none!important;}
 .stTabs [data-baseweb="tab-border"]{display:none!important;}
@@ -139,7 +139,7 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Primary 按钮 — pill + mint ═══════════════════════════════════════════ */
 .stButton>button[kind="primary"]{
-  background:var(--amber)!important;
+  background:var(--mint)!important;
   color:#fff!important;
   border:none!important;
   border-radius:var(--r-pill)!important;
@@ -147,20 +147,20 @@ header[data-testid="stHeader"]{display:none!important;}
   font-weight:600!important;
   padding:10px 28px!important;
   letter-spacing:.01em!important;
-  box-shadow:0 3px 10px rgba(212,152,40,.32),0 1px 3px rgba(212,152,40,.20)!important;
+  box-shadow:0 3px 10px rgba(106,173,160,.32),0 1px 3px rgba(106,173,160,.20)!important;
   transition:all .30s var(--spring)!important;
   white-space:nowrap!important;
 }
 .stButton>button[kind="primary"]:hover:not(:disabled){
-  background:var(--amber-dark)!important;
+  background:var(--mint-dark)!important;
   color:#fff!important;
-  box-shadow:0 6px 22px rgba(212,152,40,.40),0 2px 6px rgba(212,152,40,.22)!important;
+  box-shadow:0 6px 22px rgba(106,173,160,.40),0 2px 6px rgba(106,173,160,.22)!important;
   transform:translateY(-2px) scale(1.01)!important;
 }
 .stButton>button[kind="primary"]:active:not(:disabled){
   transform:translateY(0) scale(.97)!important;
   color:#fff!important;
-  box-shadow:0 1px 4px rgba(212,152,40,.25)!important;
+  box-shadow:0 1px 4px rgba(106,173,160,.25)!important;
 }
 
 /* ══ Secondary / 默认按钮 — pill + neo shadow ══════════════════════════════ */
@@ -178,9 +178,9 @@ header[data-testid="stHeader"]{display:none!important;}
   overflow:visible!important;
 }
 .stButton>button:hover:not(:disabled){
-  border-color:var(--amber-md)!important;
-  background:var(--amber-lt)!important;
-  color:var(--amber-dark)!important;
+  border-color:var(--mint-md)!important;
+  background:var(--mint-lt)!important;
+  color:var(--mint-dark)!important;
   box-shadow:var(--shadow-neo-md)!important;
   transform:translateY(-1px)!important;
 }
@@ -192,16 +192,16 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Slider — mint ════════════════════════════════════════════════════════ */
 [data-testid="stSlider"] [role="slider"]{
-  background:var(--amber)!important;
-  box-shadow:0 0 0 3px rgba(212,152,40,.20)!important;
+  background:var(--mint)!important;
+  box-shadow:0 0 0 3px rgba(106,173,160,.20)!important;
 }
 [data-testid="stSlider"] [data-testid="stSliderThumbValue"]{
-  background:var(--amber)!important;color:#fff!important;
+  background:var(--mint)!important;color:#fff!important;
   font-family:monospace!important;font-size:11px!important;
   border-radius:var(--r-pill)!important;
 }
 [data-testid="stSlider"] > div > div > div > div{
-  background:var(--amber)!important;
+  background:var(--mint)!important;
   border-radius:999px!important;
 }
 [data-testid="stSlider"] label{font-size:13px!important;font-weight:500!important;color:var(--tx-1)!important;}
@@ -217,8 +217,8 @@ header[data-testid="stHeader"]{display:none!important;}
   transition:border-color .2s var(--smooth),box-shadow .2s var(--smooth)!important;
 }
 .stTextInput input:focus,.stTextArea textarea:focus{
-  border-color:var(--amber-md)!important;
-  box-shadow:var(--shadow-neo-in),0 0 0 3px rgba(212,152,40,.14)!important;
+  border-color:var(--mint-md)!important;
+  box-shadow:var(--shadow-neo-in),0 0 0 3px rgba(106,173,160,.14)!important;
   outline:none!important;
 }
 .stTextArea label,.stTextInput label{
@@ -227,7 +227,7 @@ header[data-testid="stHeader"]{display:none!important;}
 
 /* ══ Checkbox ══════════════════════════════════════════════════════════════ */
 .stCheckbox label{font-size:13.5px!important;color:var(--tx-1)!important;}
-.stCheckbox [data-testid="stCheckbox"]:hover label{color:var(--amber-dark)!important;}
+.stCheckbox [data-testid="stCheckbox"]:hover label{color:var(--mint-dark)!important;}
 
 /* ══ Metric 卡片 ══════════════════════════════════════════════════════════ */
 [data-testid="metric-container"]{
@@ -270,7 +270,7 @@ header[data-testid="stHeader"]{display:none!important;}
   font-size:13px!important;font-weight:600!important;color:var(--tx-1)!important;
   padding:13px 16px!important;
 }
-.stExpander summary:hover{background:var(--amber-lt)!important;}
+.stExpander summary:hover{background:var(--mint-lt)!important;}
 
 /* ══ Border container ══════════════════════════════════════════════════════ */
 div[data-testid="stVerticalBlockBorderWrapper"]{
@@ -286,7 +286,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover{
 
 /* ══ Progress bar — mint ══════════════════════════════════════════════════ */
 [data-testid="stProgress"] > div > div{
-  background:var(--amber)!important;
+  background:var(--mint)!important;
   border-radius:999px!important;
   transition:width .4s var(--ease-out)!important;
 }
@@ -984,7 +984,7 @@ def render_screening():
     _r_blob = max(50, min(120, int(rej  / max(n, 1) * 230)))
 
     _ring_deg   = round(auto * 3.6)
-    _ring_color = "#D49828" if auto >= 80 else "#F59E0B" if auto >= 60 else "#EF4444"
+    _ring_color = "#6AADA0" if auto >= 80 else "#F59E0B" if auto >= 60 else "#EF4444"
     _ring_label = "✓ 目标达成" if auto >= 80 else "目标 ≥ 80%"
 
     st.html(f"""
@@ -1786,17 +1786,16 @@ def render_candidate_view():
 </div>
 """)
 
-    # 公示页 + 申诉入口：同一行
+    # 公示页按钮
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
-    _btn_pub, _btn_ao = st.columns(2)
-    with _btn_pub:
-        if st.button("🔗 查看规则公示页", key=f"pub_cv_{sel}", use_container_width=True):
-            if display_fp:
-                _public_page_dialog(display_dims, display_fp, display_at, jl)
-            else:
-                st.toast("请先在规则构建页锁定规则", icon="⚠️")
+    if st.button("🔗 查看规则公示页", key=f"pub_cv_{sel}"):
+        if display_fp:
+            _public_page_dialog(display_dims, display_fp, display_at, jl)
+        else:
+            st.toast("请先在规则构建页锁定规则", icon="⚠️")
 
     # ── 申诉系统 ─────────────────────────────────────────────────────────────
+    st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)
     ao_key  = f"ao_{sel}"
     ap_done = sel in st.session_state.appeal_submitted
 
@@ -2026,12 +2025,10 @@ def render_candidate_view():
                     st.rerun()
 
     else:
-        # ── 入口按钮（和公示页按钮同行）──────────────────────────────────
-        with _btn_ao:
-            if st.button("对评估结果有异议，申请复核 →", key=f"ao_btn_{sel}",
-                         use_container_width=True):
-                st.session_state[ao_key] = True
-                st.rerun()
+        # ── 入口按钮 ──────────────────────────────────────────────────────
+        if st.button("对评估结果有异议，申请复核 →", key=f"ao_btn_{sel}"):
+            st.session_state[ao_key] = True
+            st.rerun()
 
 
 

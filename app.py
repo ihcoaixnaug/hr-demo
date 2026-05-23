@@ -1951,7 +1951,10 @@ def render_verification():
   由于评估维度与 JD 任职要求<strong>一一对应</strong>，只要你手上有相同的 JD 原文，
   用相同的 AI 提取后得到的维度名称应完全一致。<br/>
   将权重调整为与 HR 公示的权重相同后，生成的指纹若与邮件中的一致，
-  即可证明规则<strong>自发布后未被修改</strong>。
+  即可证明规则<strong>自发布后未被修改</strong>。<br/><br/>
+  <strong>📌 本系统使用模型</strong>：<code>claude-3.5-haiku</code>（经由 OpenRouter）。
+  候选人可在 <a href="https://openrouter.ai" target="_blank" style="color:#2563eb;">openrouter.ai</a>
+  选择同款模型，粘贴相同 JD 原文，所提取的维度名称应与公示页完全一致。
 </div>""")
 
     if not has_api_key():

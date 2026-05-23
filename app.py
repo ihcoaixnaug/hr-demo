@@ -386,14 +386,33 @@ def _preset_mode_banner() -> str:
 
 
 # ─── 弹窗（Dialogs） ──────────────────────────────────────────────────────────
-@st.dialog("📋 规则公示页", width="large")
+@st.dialog("📋 规则公示", width="small")
 def _public_page_dialog(dims: list, fp: str, locked_at: str, job_label: str):
-    html = build_public_page_html(dims, fp, locked_at, job_label)
-    st.download_button(
-        "⬇ 下载公示页 HTML（可发送给候选人或挂载官网）",
-        data=html, file_name="rule_public_page.html", mime="text/html",
+    st.caption(f"腾讯 · {job_label} · 2026届秋招")
+    st.markdown(
+        f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:12px">'
+        f'<p style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px">Rule Hash · 规则指纹</p>'
+        f'<p style="font-family:monospace;font-size:18px;font-weight:700;color:#111;letter-spacing:.15em;margin:0">{fp}</p>'
+        f'<p style="font-size:11px;color:#9ca3af;margin:6px 0 0">候选人可对比投递确认邮件中的指纹，一致则规则未被修改</p>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
-    st.components.v1.html(html, height=480, scrolling=True)
+    rows = "".join(
+        f'<tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151">{d["label"]}</td>'
+        f'<td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;text-align:right">{d["weight"]}%</td></tr>'
+        for d in dims
+    )
+    st.markdown(
+        f'<table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:10px">'
+        f'<thead><tr>'
+        f'<th style="padding:8px 12px;background:#f9fafb;font-size:11px;color:#9ca3af;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.05em">维度</th>'
+        f'<th style="padding:8px 12px;background:#f9fafb;font-size:11px;color:#9ca3af;text-align:right;font-weight:600;text-transform:uppercase;letter-spacing:.05em">权重</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table>',
+        unsafe_allow_html=True,
+    )
+    html = build_public_page_html(dims, fp, locked_at, job_label)
+    st.download_button("⬇ 下载完整公示页 HTML", data=html,
+                       file_name="rule_public_page.html", mime="text/html")
 
 
 @st.dialog("📄 原始简历", width="small")

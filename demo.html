@@ -581,6 +581,46 @@ function ResumeModal({ candidate, onClose }) {
   );
 }
 
+// ─── Rules Modal ──────────────────────────────────────────────────────────────
+
+function RulesModal({ dims, fingerprint, lockedAt, selectedJob, onClose }) {
+  if (!dims) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm">筛选规则公示</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{selectedJob ? JOB_PRESETS[selectedJob]?.label : "自定义岗位"} · 规则已锁定</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-lg transition-colors">✕</button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Rule Hash · 规则指纹</p>
+            <p className="font-mono text-lg font-bold text-gray-900 tracking-widest">{fingerprint}</p>
+            <p className="text-xs text-gray-400 mt-1.5">候选人可对比投递确认邮件中的指纹，一致则规则未被修改</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">评估维度与权重</p>
+            <div className="border border-gray-100 rounded-xl overflow-hidden">
+              {dims.map((d, i) => (
+                <div key={d.id} className={`flex items-center justify-between px-4 py-2.5 text-sm ${i < dims.length - 1 ? "border-b border-gray-50" : ""}`}>
+                  <span className="text-gray-700">{d.label}</span>
+                  <span className="font-mono text-gray-500 text-xs">{d.weight}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            只读公示，规则自锁定后不可更改
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page 1: Rule Builder ─────────────────────────────────────────────────────
 
 function RuleBuilder({ onLock, openPublicPage, onGoToScreen, onReset }) {
@@ -1229,13 +1269,8 @@ function App() {
   const [pool, setPool]           = useState([]); // [{id, name, school, tag, fromJob}]
   const [overrides, setOverrides] = useState({}); // {candidateId: "强推进面试"|"待定"|"不推进"}
 
-  function openPublicPage() {
-    if (!lockedDims) return;
-    const html = buildPublicPageHTML(lockedDims, fingerprint, lockedAt);
-    const blob = new Blob([html], { type: "text/html" });
-    const url  = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-  }
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  function openPublicPage() { if (lockedDims) setShowRulesModal(true); }
 
   function addToPool(candidate) {
     if (pool.find(p => p.id === candidate.id)) return;
@@ -1252,6 +1287,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showRulesModal && <RulesModal dims={lockedDims} fingerprint={fingerprint} lockedAt={lockedAt} selectedJob={selectedJob} onClose={() => setShowRulesModal(false)} />}
       {/* Nav */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">

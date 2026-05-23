@@ -581,6 +581,29 @@ function ResumeModal({ candidate, onClose }) {
   );
 }
 
+// ─── JD Modal ─────────────────────────────────────────────────────────────────
+
+function JDModal({ job, onClose }) {
+  if (!job) return null;
+  const preset = JOB_PRESETS[job];
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm">岗位 JD</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{preset.label}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-lg transition-colors">✕</button>
+        </div>
+        <div className="px-5 py-4 max-h-80 overflow-y-auto">
+          <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{preset.jd}</pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Rules Modal ──────────────────────────────────────────────────────────────
 
 function RulesModal({ dims, fingerprint, lockedAt, selectedJob, onClose }) {
@@ -690,14 +713,12 @@ function RuleBuilder({ onLock, openPublicPage, onGoToScreen, onReset }) {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                   已加载「{JOB_PRESETS[selectedJob].label}」评估维度
                 </p>
-                <button onClick={() => setShowJd(v => !v)}
+                <button onClick={() => setShowJd(true)}
                   className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors">
-                  查看岗位 JD {showJd ? "▲" : "▼"}
+                  查看岗位 JD ↗
                 </button>
               </div>
-              {showJd && (
-                <pre className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed whitespace-pre-wrap fade-in">{JOB_PRESETS[selectedJob].jd}</pre>
-              )}
+              {showJd && <JDModal job={selectedJob} onClose={() => setShowJd(false)} />}
             </div>
           )}
         </div>

@@ -415,6 +415,12 @@ def _public_page_dialog(dims: list, fp: str, locked_at: str, job_label: str):
                        file_name="rule_public_page.html", mime="text/html")
 
 
+@st.dialog("📋 岗位 JD", width="small")
+def _jd_dialog(label: str, jd: str):
+    st.caption(label)
+    st.code(jd, language=None)
+
+
 @st.dialog("📄 原始简历", width="small")
 def _resume_dialog(cand: dict):
     resume = cand["resume"]
@@ -535,8 +541,9 @@ def render_rule_builder():
             st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
             _ca, _cb, _cc = st.columns([1, 1, 1], vertical_alignment="center")
             with _ca:
-                with st.expander(f"📋 查看{jl_l} JD"):
-                    st.code(preset_l["jd"], language=None)
+                if st.button(f"📋 查看 JD", key=f"jd_btn_{jk_l}",
+                             use_container_width=True):
+                    _jd_dialog(jl_l, preset_l["jd"])
             with _cb:
                 if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}",
                              use_container_width=True):
@@ -648,8 +655,8 @@ def render_rule_builder():
   <span>已加载「<strong>{preset["label"]}</strong>」预设评估维度，可调整权重后锁定</span>
 </div>""")
 
-    with st.expander("查看岗位 JD"):
-        st.code(preset["jd"], language=None)
+    if st.button("📋 查看岗位 JD", key="jd_btn_rule_builder"):
+        _jd_dialog(preset["label"], preset["jd"])
 
     # 维度权重卡
     st.markdown('<br/>', unsafe_allow_html=True)
@@ -1957,8 +1964,8 @@ def render_verification():
   ✅ 已加载「{_off_preset["label"]}」预设维度（共 {len(_off_preset["dims"])} 个）
   — 验证维度名称与权重的 Hash 计算过程同线上完全一致
 </div>""")
-            with st.expander("查看岗位 JD（参考原文）"):
-                st.code(_off_preset["jd"], language=None)
+            if st.button("📋 查看岗位 JD", key="jd_btn_verify"):
+                _jd_dialog(_off_preset["label"], _off_preset["jd"])
     else:
         # ── 在线模式：JD 文本输入 + AI 提取 ────────────────────────────
         st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">① 粘贴岗位 JD（需包含「任职要求」部分）</p>')

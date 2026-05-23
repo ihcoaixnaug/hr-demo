@@ -307,6 +307,28 @@ hr{border:none!important;border-top:1px solid var(--border-lt)!important;margin:
 .stHtml:nth-child(6){animation:fadeUp .38s var(--ease-out) .23s both;}
 .stHtml:nth-child(7){animation:fadeUp .38s var(--ease-out) .26s both;}
 .stHtml:nth-child(8){animation:fadeUp .38s var(--ease-out) .28s both;}
+
+/* ══ 卡片悬停升浮 ════════════════════════════════════════════════════════ */
+.zh-card{
+  transition:box-shadow .26s var(--spring),transform .26s var(--spring)!important;
+}
+.zh-card:hover{
+  box-shadow:var(--shadow-md)!important;
+  transform:translateY(-2px)!important;
+}
+
+/* ══ 数字等宽 ════════════════════════════════════════════════════════════ */
+.zh-num{
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
+}
+
+/* ══ Markdown 内容区排版 ═════════════════════════════════════════════════ */
+.stMarkdown p{
+  font-size:14px!important;
+  color:var(--tx-1)!important;
+  line-height:1.7!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -346,9 +368,9 @@ _sync_pool()
 # ─── HTML 辅助函数 ────────────────────────────────────────────────────────────
 
 COLOR_MAP = {
-    "green":  {"bg":"#F2FBF4","border":"#A7D9B3","badge_bg":"#DDF3E4","badge_text":"#166534"},
-    "yellow": {"bg":"#FFFBEB","border":"#F5D87A","badge_bg":"#FEF3C7","badge_text":"#92400E"},
-    "red":    {"bg":"#FEF4F4","border":"#F5B8B8","badge_bg":"#FEE2E2","badge_text":"#991B1B"},
+    "green":  {"bg":"#F2FBF4","border":"#A7D9B3","badge_bg":"#DDF3E4","badge_text":"#166534","accent":"#22C55E","top":"#4ADE80"},
+    "yellow": {"bg":"#FFFBEB","border":"#F5D87A","badge_bg":"#FEF3C7","badge_text":"#92400E","accent":"#F59E0B","top":"#FCD34D"},
+    "red":    {"bg":"#FEF4F4","border":"#F5B8B8","badge_bg":"#FEE2E2","badge_text":"#991B1B","accent":"#EF4444","top":"#FCA5A5"},
 }
 TAG_COLOR = {
     "985":  ("bg:#F0EDF8","color:#5B21B6"),
@@ -530,21 +552,18 @@ def render_header():
         )
 
     st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:18px;
-            padding:14px 22px;margin-bottom:14px;
-            box-shadow:0 2px 12px rgba(0,0,0,.08);
-            display:flex;align-items:center;justify-content:space-between;gap:12px;">
-  <div style="display:flex;align-items:center;gap:14px;">
-    <div style="width:40px;height:40px;flex-shrink:0;
-                background:#1A1714;
-                border-radius:12px;
-                display:flex;align-items:center;justify-content:center;
-                box-shadow:0 3px 10px rgba(28,23,20,.30);">
-      <span style="color:#FEFCF9;font-weight:900;font-size:17px;letter-spacing:-.5px;">智</span>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+            padding:0 0 20px;border-bottom:1px solid #E3DED6;margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:13px;">
+    <div style="width:36px;height:36px;flex-shrink:0;background:#1A1714;
+                border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <span style="color:#FEFCF9;font-weight:900;font-size:15px;letter-spacing:-.5px;">智</span>
     </div>
-    <div style="line-height:1.2;">
-      <div style="font-weight:800;font-size:18px;color:#111827;letter-spacing:-.02em;">智筛 AI</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:1px;">Trustworthy Resume Screening</div>
+    <div>
+      <div style="font-weight:800;font-size:17px;color:#1A1714;letter-spacing:-.03em;
+                  line-height:1.1;">智筛 AI</div>
+      <div style="font-size:11px;color:#9E9994;letter-spacing:.04em;margin-top:1px;">
+        TRUSTWORTHY SCREENING</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
@@ -907,15 +926,16 @@ def render_screening():
 
     if not results:
         st.html("""
-<div style="background:white;border:1px dashed #d1d5db;border-radius:16px;
-            padding:48px 32px;text-align:center;margin-top:12px;">
-  <div style="font-size:32px;margin-bottom:12px;">🚀</div>
-  <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px;">
-    选择候选人后点击「开始筛选」
+<div style="border:1.5px dashed #D4CFC8;border-radius:16px;
+            padding:56px 32px;text-align:center;margin-top:16px;">
+  <div style="width:48px;height:48px;background:#F5F3EF;border-radius:14px;
+              display:flex;align-items:center;justify-content:center;
+              margin:0 auto 16px;font-size:22px;">🚀</div>
+  <div style="font-size:15px;font-weight:700;color:#1A1714;letter-spacing:-.01em;margin-bottom:8px;">
+    选择候选人，点击「开始筛选」
   </div>
-  <div style="font-size:13px;color:#9ca3af;line-height:1.7;">
-    AI 将按锁定规则逐份评分，每条结论追溯到具体维度<br/>
-    评分完成后结果卡片将在此显示
+  <div style="font-size:13px;color:#9E9994;line-height:1.8;max-width:320px;margin:0 auto;">
+    AI 按锁定规则逐份评分<br/>每条结论可追溯到具体维度证据
   </div>
 </div>""")
         return
@@ -929,44 +949,38 @@ def render_screening():
     rej = sum(1 for r in all_finals if r == "不推进")
     auto = round(((s_n + rej) / n) * 100) if n else 0
 
+    _card = lambda top, label, val, unit, sub, hint: f"""
+<div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
+            padding:18px 18px 16px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:{top};
+              border-radius:14px 14px 0 0;"></div>
+  <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
+              letter-spacing:.08em;margin-bottom:10px;margin-top:2px;">{label}</div>
+  <div style="font-size:32px;font-weight:800;color:#1A1714;letter-spacing:-.04em;
+              font-variant-numeric:tabular-nums;line-height:1;">{val}{"" if not unit else f'<span style="font-size:14px;font-weight:400;color:#9E9994;letter-spacing:0;margin-left:2px;">{unit}</span>'}</div>
+  {"" if not sub else f'<div style="font-size:11px;color:#9E9994;margin-top:6px;">{sub}</div>'}
+</div>"""
     st.html(f"""
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
-  <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
-              padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
-    <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;">本次筛选</div>
-    <div style="font-size:28px;font-weight:800;color:#111827;letter-spacing:-.03em;">{n}<span style="font-size:14px;font-weight:500;color:#9ca3af;"> 份</span></div>
-  </div>
-  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;
-              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(16,185,129,.08);">
-    <div style="font-size:11px;font-weight:600;color:#166534;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;">强推进</div>
-    <div style="font-size:28px;font-weight:800;color:#166534;letter-spacing:-.03em;">{s_n}</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fde68a;
-              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(245,158,11,.08);">
-    <div style="font-size:11px;font-weight:600;color:#92400e;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;">待定</div>
-    <div style="font-size:28px;font-weight:800;color:#92400e;letter-spacing:-.03em;">{p_n}</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fecaca;
-              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,.08);">
-    <div style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;">不推进</div>
-    <div style="font-size:28px;font-weight:800;color:#991b1b;letter-spacing:-.03em;">{rej}</div>
-  </div>
-  <div style="background:#F5F3EF;border:1px solid #D4CFC8;
-              border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(28,23,20,.06);">
-    <div style="font-size:11px;font-weight:600;color:#6B6560;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
-      AI 自动处理
-      <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;无需 HR 介入；剩余待定 {p_n} 份需人工复核"
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.3fr;gap:10px;margin-bottom:24px;">
+  {_card("#E3DED6","本次筛选",n,"份","","")}
+  {_card("#4ADE80","强推进",s_n,"","","")}
+  {_card("#FCD34D","待定",p_n,"","","")}
+  {_card("#FCA5A5","不推进",rej,"","","")}
+  <div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
+              padding:18px 18px 16px;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#1A1714;
+                border-radius:14px 14px 0 0;"></div>
+    <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
+                letter-spacing:.08em;margin-bottom:10px;margin-top:2px;
+                display:flex;align-items:center;gap:5px;">AI 自动处理
+      <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;剩余待定 {p_n} 份需人工复核"
             style="display:inline-flex;align-items:center;justify-content:center;
                    width:14px;height:14px;border-radius:50%;border:1.5px solid #C4BCB2;
-                   color:#9E9994;font-size:9px;font-weight:700;cursor:default;flex-shrink:0;">?</span>
+                   color:#9E9994;font-size:9px;font-weight:700;cursor:default;">?</span>
     </div>
-    <div style="font-size:28px;font-weight:800;color:#1A1714;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
-    <div style="font-size:11px;color:#9E9994;margin-top:4px;">系统设计目标 ≥ 80%</div>
+    <div style="font-size:32px;font-weight:800;color:#1A1714;letter-spacing:-.04em;
+                font-variant-numeric:tabular-nums;line-height:1;">{auto}<span style="font-size:14px;font-weight:400;color:#9E9994;letter-spacing:0;margin-left:2px;">%</span></div>
+    <div style="font-size:11px;color:#9E9994;margin-top:6px;">目标 ≥ 80%</div>
   </div>
 </div>""")
 
@@ -995,26 +1009,26 @@ def render_screening():
         ratio_icon      = "✅" if ratio_ok else "⚠"
         ratio_note      = "达标 ≤8:1" if ratio_ok else "偏高，可上调强推阈值"
         st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;
-            padding:14px 20px;margin-bottom:16px;
-            display:flex;align-items:center;gap:24px;flex-wrap:wrap;
-            box-shadow:0 1px 4px rgba(0,0,0,.05);">
-  <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-              letter-spacing:.05em;white-space:nowrap;">📐 全量推算</div>
+<div style="background:#FEFCF9;border:1px solid #E3DED6;border-radius:14px;
+            padding:16px 22px;margin-bottom:20px;
+            display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+  <div style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
+              letter-spacing:.08em;white-space:nowrap;">全量推算</div>
   <div style="display:flex;align-items:baseline;gap:6px;">
-    <span style="font-size:24px;font-weight:800;color:#111827;">{proj_interviews}</span>
-    <span style="font-size:13px;color:#6b7280;">人预计进入面试 / 12,000 份简历</span>
+    <span style="font-size:26px;font-weight:800;color:#1A1714;letter-spacing:-.03em;
+                 font-variant-numeric:tabular-nums;">{proj_interviews}</span>
+    <span style="font-size:13px;color:#9E9994;">人预计进入面试 / 12,000 份</span>
   </div>
+  <div style="width:1px;height:28px;background:#E3DED6;flex-shrink:0;"></div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <span style="font-size:13px;color:#6b7280;">到面录取比</span>
+    <span style="font-size:13px;color:#6B6560;">到面录取比</span>
     <span style="background:{ratio_bg};border:1px solid {ratio_border};color:{ratio_color};
                  border-radius:999px;padding:3px 12px;font-size:13px;font-weight:700;">
       {ratio_icon} {ratio_str}</span>
-    <span style="font-size:12px;color:{ratio_color};">{ratio_note}</span>
+    <span style="font-size:12px;color:{ratio_color};font-weight:500;">{ratio_note}</span>
   </div>
-  <div style="font-size:12px;color:#c4c9d4;margin-left:auto;text-align:right;">
-    目标 ≤8:1 · 招聘 {hiring_target} 人<br/>
-    <span style="font-size:11px;color:#d1d5db;">基于本批 {n} 份样本估算</span>
+  <div style="font-size:11px;color:#C4BCB2;margin-left:auto;text-align:right;line-height:1.6;">
+    目标 ≤ 8:1 · 招聘 {hiring_target} 人<br/>基于本批 {n} 份样本估算
   </div>
 </div>""")
 
@@ -1091,34 +1105,44 @@ def render_screening():
   {"<br/>覆盖原因：" + ov_data.get("note","") if ov_data.get("note") else ""}
 </div>"""
 
-        # 主卡片 HTML
+        # 主卡片 HTML — white + left accent strip
         st.html(f"""
-<div style="background:{cm['bg']};border:1.5px solid {cm['border']};
-            border-radius:16px;padding:18px 20px;margin-bottom:0;
-            box-shadow:0 2px 10px rgba(0,0,0,.05);">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
-        <span style="font-size:15px;font-weight:700;color:#111827;letter-spacing:-.01em;">{cand["name"]}</span>
-        <span style="background:white;border:1px solid #e5e7eb;color:#4b5563;
-                     border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;">{cand["school"]}</span>
-        {_degree_tag(cand.get("degree","本科"))}
-        {_tag(cand["tag"])}
+<div style="background:#FEFCF9;border-radius:14px;overflow:hidden;
+            box-shadow:0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04);
+            transition:box-shadow .26s cubic-bezier(0.34,1.56,0.64,1),
+                       transform .26s cubic-bezier(0.34,1.56,0.64,1);"
+     onmouseenter="this.style.boxShadow='0 4px 14px rgba(28,23,20,.10),0 2px 4px rgba(28,23,20,.06)';this.style.transform='translateY(-2px)'"
+     onmouseleave="this.style.boxShadow='0 1px 3px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.04)';this.style.transform='translateY(0)'">
+  <div style="display:flex;height:100%;">
+    <div style="width:4px;flex-shrink:0;background:{cm['accent']};"></div>
+    <div style="flex:1;padding:20px 22px;border:1px solid #E3DED6;border-left:none;
+                border-radius:0 14px 14px 0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px;">
+            <span style="font-size:15px;font-weight:700;color:#1A1714;letter-spacing:-.02em;">{cand["name"]}</span>
+            <span style="background:#F5F3EF;border:1px solid #E3DED6;color:#6B6560;
+                         border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;">{cand["school"]}</span>
+            {_degree_tag(cand.get("degree","本科"))}
+            {_tag(cand["tag"])}
+          </div>
+          <p style="font-size:13px;color:#6B6560;line-height:1.68;margin:0 0 6px;">{cand["summary"]}</p>
+          <span style="font-size:11px;color:#C4BCB2;letter-spacing:.02em;">{src_label}</span>
+          {ov_note_html}
+        </div>
+        <div style="text-align:right;flex-shrink:0;padding-left:12px;">
+          {_badge(final)}
+          <div style="font-size:42px;font-weight:900;color:#1A1714;margin-top:8px;
+                      line-height:1;letter-spacing:-.05em;font-variant-numeric:tabular-nums;">
+            {score}<span style="font-size:13px;font-weight:400;color:#9E9994;
+                               letter-spacing:.02em;margin-left:1px;">分</span>
+          </div>
+        </div>
       </div>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0 0 4px;">{cand["summary"]}</p>
-      <span style="font-size:11px;color:#c4c9d4;font-style:italic;">{src_label}</span>
-      {ov_note_html}
-    </div>
-    <div style="text-align:right;flex-shrink:0;padding-left:8px;">
-      {_badge(final)}
-      <div style="font-size:34px;font-weight:900;color:#111827;margin-top:8px;
-                  line-height:1;letter-spacing:-.03em;">
-        {score}<span style="font-size:14px;font-weight:500;color:#9ca3af;letter-spacing:0;"> 分</span>
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #F0EDE8;">
+        {_bars(r["scores"], dims)}
       </div>
     </div>
-  </div>
-  <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,0,0,.06);">
-    {_bars(r["scores"], dims)}
   </div>
 </div>
 """)
@@ -1157,20 +1181,21 @@ def render_screening():
         # ── 展开：理由 + HR 覆盖 ──────────────────────────────────────────────
         if is_expanded:
             reasons_html = "".join(
-                f"""<div style="background:#F5F3EF;border:1px solid #D4CFC8;border-radius:8px;
-                              padding:10px 14px;margin-bottom:8px;">
-  <div style="font-size:11px;font-weight:700;color:#4f46e5;
-              letter-spacing:.04em;margin-bottom:6px;">{d["label"]}</div>
-  <div style="font-size:12.5px;color:#374151;line-height:1.7;">{r["reasons"].get(d["id"],"")}</div>
+                f"""<div style="padding:12px 0;border-bottom:1px solid #F0EDE8;">
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px;">
+    <span style="font-size:11px;font-weight:700;color:#1A1714;letter-spacing:.04em;
+                 text-transform:uppercase;">{d["label"]}</span>
+    <span style="font-size:11px;color:#C4BCB2;">权重 {d["weight"]}%</span>
+  </div>
+  <div style="font-size:13px;color:#6B6560;line-height:1.72;">{r["reasons"].get(d["id"],"")}</div>
 </div>"""
                 for d in dims
             )
             st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;
-            border-radius:14px;padding:16px 18px;margin-top:6px;
-            box-shadow:0 1px 4px rgba(0,0,0,.05);">
-  <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;
-             letter-spacing:.07em;margin:0 0 4px;">AI 评分理由 · 逐维度</p>
+<div style="background:#FEFCF9;border:1px solid #E3DED6;
+            border-radius:12px;padding:4px 18px 4px;margin-top:2px;">
+  <p style="font-size:10.5px;font-weight:700;color:#9E9994;text-transform:uppercase;
+             letter-spacing:.08em;margin:14px 0 0;">AI 评分依据 · 逐维度</p>
   {reasons_html}
 </div>
 """)

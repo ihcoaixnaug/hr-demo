@@ -804,8 +804,9 @@ def render_screening():
 </div>""")
         return
 
-    # ── 汇总栏 ───────────────────────────────────────────────────────────────
-    all_finals = [_get_final(cid, r["ai_result"])[0] for cid, r in results.items()]
+    # ── 汇总栏（只统计当前岗位的候选人，不跨岗累积）────────────────────────
+    all_finals = [_get_final(c["id"], results[c["id"]]["ai_result"])[0]
+                  for c in job_c if c["id"] in results]
     n = len(all_finals)
     s_n = sum(1 for r in all_finals if r == "强推进面试")
     p_n = sum(1 for r in all_finals if r == "待定")

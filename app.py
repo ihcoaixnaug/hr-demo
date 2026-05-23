@@ -1748,6 +1748,57 @@ with tab4:
 with tab5:
     render_verification()
 
+# ── 悬浮置顶按钮（注入父 frame，跟随页面滚动，滚动超 300px 后出现）──────────────
+st.components.v1.html("""
+<script>
+(function() {
+  var doc = window.parent.document;
+  if (doc.getElementById('zhishai-top-btn')) return;
+
+  var btn = doc.createElement('button');
+  btn.id = 'zhishai-top-btn';
+  btn.title = '回到顶部';
+  btn.innerHTML = '&#8679;';   /* ⇧ */
+  btn.style.cssText = [
+    'position:fixed',
+    'bottom:36px',
+    'right:36px',
+    'width:44px',
+    'height:44px',
+    'border-radius:50%',
+    'background:linear-gradient(135deg,#2563eb 0%,#1e1b4b 100%)',
+    'color:white',
+    'border:none',
+    'box-shadow:0 4px 18px rgba(37,99,235,.40),0 1px 4px rgba(0,0,0,.15)',
+    'cursor:pointer',
+    'font-size:22px',
+    'font-weight:700',
+    'line-height:1',
+    'display:none',
+    'align-items:center',
+    'justify-content:center',
+    'z-index:99999',
+    'transition:opacity .25s,transform .18s',
+    'opacity:0',
+  ].join(';');
+
+  btn.onmouseenter = function(){ btn.style.transform='scale(1.12)'; };
+  btn.onmouseleave = function(){ btn.style.transform='scale(1)'; };
+  btn.onclick = function(){
+    window.parent.scrollTo({top:0, behavior:'smooth'});
+  };
+
+  doc.body.appendChild(btn);
+
+  window.parent.addEventListener('scroll', function(){
+    var show = window.parent.scrollY > 300;
+    btn.style.display = show ? 'flex' : 'none';
+    btn.style.opacity  = show ? '1'    : '0';
+  }, {passive: true});
+})();
+</script>
+""", height=0)
+
 # ── Tab 跳转：rerun 后注入 JS 点击目标 Tab ───────────────────────────────────
 _goto = st.session_state.get("goto_tab", -1)
 if _goto >= 0:

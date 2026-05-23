@@ -1010,9 +1010,10 @@ def render_candidate_view():
         return
 
     if sel in results:
-        r = results[sel]; ai_r = r["ai_result"]; scores = r["scores"]
+        r = results[sel]; ai_r = r["ai_result"]
+        scores = r["scores"]; reasons = r.get("reasons", cand.get("reasons", {}))
     else:
-        ai_r = cand["result"]; scores = cand["scores"]
+        ai_r = cand["result"]; scores = cand["scores"]; reasons = cand.get("reasons", {})
 
     final, is_ov    = _get_final(sel, ai_r)
     color           = result_color(final)
@@ -1109,35 +1110,140 @@ def render_candidate_view():
                                file_name="rule_public_page.html", mime="text/html")
             st.components.v1.html(st.session_state.public_html, height=440, scrolling=True)
 
-    # 申诉
-    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
-    if sel in st.session_state.appeal_submitted:
-        st.success("✅ 申诉已提交，预计 5 个工作日内处理完毕。", icon="✅")
-    else:
-        ao_key = f"ao_{sel}"
-        if not st.session_state.get(ao_key):
-            if st.button("我对结果有异议，申请复核 →", key=f"ao_btn_{sel}"):
-                st.session_state[ao_key] = True
+    # ── 申诉系统 ─────────────────────────────────────────────────────────────
+    st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)
+    ao_key  = f"ao_{sel}"
+    ap_done = sel in st.session_state.appeal_submitted
+
+    if ap_done:
+        # ── 已提交：受理确认 + 有条件查分 ──────────────────────────────────
+        revealed = st.session_state.get(f"ap_revealed_{sel}", [])
+        st.html("""
+<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;
+            padding:16px 20px;margin-bottom:12px;
+            box-shadow:0 2px 8px rgba(16,185,129,.08);">
+  <div style="font-size:14px;font-weight:700;color:#166534;margin-bottom:6px;">
+    ✅ 申诉已受理
+  </div>
+  <div style="font-size:13px;color:#15803d;line-height:1.65;">
+    校招运营团队将在 <strong>5 个工作日</strong>内处理您的申诉。<br/>
+    复核基准为您提交时所对应的 <strong>锁定规则版本（指纹不变）</strong>，
+    如需补充材料，将通过投递邮箱联系您。
+  </div>
+</div>""")
+
+        if revealed:
+            st.html("""
+<div style="margin-bottom:10px;">
+  <span style="font-size:13px;font-weight:700;color:#374151;">📊 申诉维度 · 评分详情</span>
+  <span style="font-size:11.5px;color:#6b7280;margin-left:8px;">
+    仅展示您提出异议的维度，其余维度分数不对外披露
+  </span>
+</div>""")
+            for dim_id in revealed:
+                dim_info = next((d for d in display_dims if d["id"] == dim_id), None)
+                if not dim_info:
+                    continue
+                sv   = scores.get(dim_id, 0)
+                rv   = reasons.get(dim_id, "暂无详细理由。")
+                if sv >= 80:
+                    sc, bc = "#059669", "#f0fdf4"
+                elif sv >= 65:
+                    sc, bc = "#2563eb", "#eff6ff"
+                else:
+                    sc, bc = "#dc2626", "#fef2f2"
+                st.html(f"""
+<div style="background:{bc};border:1px solid #e5e7eb;border-radius:12px;
+            padding:14px 18px;margin-bottom:8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <span style="font-size:13px;font-weight:700;color:#374151;">
+      {dim_info["label"]}
+      <span style="font-size:11px;color:#9ca3af;font-weight:400;margin-left:6px;">
+        权重 {dim_info["weight"]}%</span>
+    </span>
+    <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:22px;
+                 font-weight:900;color:{sc};">{sv}</span>
+  </div>
+  <p style="font-size:12.5px;color:#4b5563;line-height:1.7;margin:0;">
+    <strong style="color:#374151;">AI 评分理由：</strong>{rv}</p>
+</div>""")
+
+            st.html("""
+<div style="background:#fef9ec;border:1px solid #fde68a;border-radius:10px;
+            padding:12px 16px;font-size:12.5px;color:#92400e;line-height:1.65;">
+  💡 如您有上述理由中未提及的具体证据（项目链接、作品集、成绩单等），
+  可回复投递确认邮件补充，校招团队复核时将一并参考。
+</div>""")
+
+    elif st.session_state.get(ao_key):
+        # ── 申诉表单：结构化填写 ─────────────────────────────────────────
+        st.html("""
+<div style="background:white;border:1.5px solid #e5e7eb;border-radius:16px;
+            padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.06);">
+  <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px;">
+    申请评估复核
+  </div>
+  <div style="font-size:13px;color:#6b7280;line-height:1.65;margin-bottom:16px;
+              padding-bottom:14px;border-bottom:1px solid #f0f0f0;">
+    请指定您认为评估有误的维度，并说明 AI 可能遗漏的具体证据。<br/>
+    <strong style="color:#374151;">提交后将显示该维度的详细评分理由</strong>，
+    帮助您判断是否继续申诉。
+  </div>
+</div>""")
+
+        dim_label_to_id = {d["label"]: d["id"] for d in display_dims}
+        selected_labels = st.multiselect(
+            "您认为哪些维度的评估存在偏差？",
+            options=[d["label"] for d in display_dims],
+            key=f"ap_dims_{sel}",
+            placeholder="选择维度（可多选）",
+        )
+
+        ap_evidence: dict[str, str] = {}
+        for label in selected_labels:
+            dim_id = dim_label_to_id[label]
+            ev = st.text_area(
+                f"关于「{label}」的补充说明",
+                key=f"ap_ev_{sel}_{dim_id}",
+                placeholder=(
+                    "请描述您认为 AI 评估中遗漏的具体证据，"
+                    "例如：简历中未充分体现的项目经历、技能应用场景、量化成果等。"
+                    "模糊的"我觉得不公平"将无法作为复核依据。"
+                ),
+                height=88,
+            )
+            ap_evidence[dim_id] = ev
+
+        can_submit = (
+            len(selected_labels) > 0
+            and all(v.strip() for v in ap_evidence.values())
+        )
+
+        ca, sb = st.columns(2)
+        with ca:
+            if st.button("取消", key=f"ap_cancel_{sel}", use_container_width=True):
+                st.session_state[ao_key] = False
                 st.rerun()
-        else:
-            with st.container(border=True):
-                st.markdown('<p style="font-size:14px;font-weight:600;color:#374151;">提交申诉</p>', unsafe_allow_html=True)
-                st.caption("请说明异议理由，申诉将在 5 个工作日内处理。申诉基准为公开规则，无效申诉将大幅减少。")
-                ap_text = st.text_area("申诉说明", key=f"ap_txt_{sel}",
-                                        placeholder="请描述您认为评估不准确的具体原因…",
-                                        height=96, label_visibility="collapsed")
-                ca, sb = st.columns(2)
-                with ca:
-                    if st.button("取消", key=f"ap_cancel_{sel}"):
-                        st.session_state[ao_key] = False
-                        st.rerun()
-                with sb:
-                    if st.button("提交申诉", type="primary", disabled=not ap_text.strip(),
-                                 key=f"ap_sub_{sel}"):
-                        save_appeal(sel, cand["name"], ap_text)
-                        st.session_state.appeal_submitted.add(sel)
-                        st.session_state[ao_key] = False
-                        st.rerun()
+        with sb:
+            if st.button("提交申诉", type="primary", disabled=not can_submit,
+                         key=f"ap_sub_{sel}", use_container_width=True):
+                ap_text = "\n".join(
+                    f"[{lbl}] {ap_evidence[dim_label_to_id[lbl]]}"
+                    for lbl in selected_labels
+                )
+                save_appeal(sel, cand["name"], ap_text)
+                st.session_state.appeal_submitted.add(sel)
+                st.session_state[f"ap_revealed_{sel}"] = [
+                    dim_label_to_id[l] for l in selected_labels
+                ]
+                st.session_state[ao_key] = False
+                st.rerun()
+
+    else:
+        # ── 入口按钮 ──────────────────────────────────────────────────────
+        if st.button("对评估结果有异议，申请复核 →", key=f"ao_btn_{sel}"):
+            st.session_state[ao_key] = True
+            st.rerun()
 
     # 演示说明
     NOTES = {

@@ -1264,19 +1264,65 @@ def render_screening():
 </div>""")
 
                 if status == "pending":
-                    a_col, b_col, _ = st.columns([2, 2, 6])
+                    a_col, b_col, c_col, _ = st.columns([2, 2, 2, 4])
                     with a_col:
-                        if st.button("✅ 标记已复核", key=f"ap_rev_{ap_id}",
+                        if st.button("✅ 维持原判", key=f"ap_rev_{ap_id}",
                                      use_container_width=True, type="primary"):
                             update_appeal_status(ap_id, "reviewed")
-                            st.toast(f"✅ {cname} 的申诉已标记为「已复核」")
+                            st.toast(f"✅ {cname} 的申诉已复核，维持原结论")
+                            st.session_state.pop(f"ap_accept_{ap_id}", None)
                             st.rerun()
                     with b_col:
+                        if st.button("🔄 采纳申诉", key=f"ap_acc_{ap_id}",
+                                     use_container_width=True):
+                            st.session_state[f"ap_accept_{ap_id}"] = True
+                    with c_col:
                         if st.button("❌ 驳回申诉", key=f"ap_dis_{ap_id}",
                                      use_container_width=True):
                             update_appeal_status(ap_id, "dismissed")
                             st.toast(f"已驳回 {cname} 的申诉")
+                            st.session_state.pop(f"ap_accept_{ap_id}", None)
                             st.rerun()
+
+                    if st.session_state.get(f"ap_accept_{ap_id}"):
+                        ai_result = st.session_state.screening_results.get(cid, {}).get("ai_result", "不推进")
+                        with st.container():
+                            st.markdown(
+                                '<div style="background:#f0fdf4;border:1px solid #86efac;'
+                                'border-radius:10px;padding:12px 14px;margin-top:8px;">',
+                                unsafe_allow_html=True)
+                            new_result = st.selectbox(
+                                "调整为",
+                                [r for r in ["强推进面试", "待定", "不推进"] if r != ai_result],
+                                key=f"ap_new_result_{ap_id}",
+                            )
+                            acc_note = st.text_input(
+                                "采纳原因（将记入审计日志）",
+                                placeholder="例：候选人提供了未在原简历体现的项目链接，经核实符合岗位要求",
+                                key=f"ap_acc_note_{ap_id}",
+                            )
+                            confirm_col, cancel_col, _ = st.columns([2, 2, 6])
+                            with confirm_col:
+                                if st.button("💾 确认采纳", key=f"ap_acc_confirm_{ap_id}",
+                                             type="primary", use_container_width=True):
+                                    if not acc_note.strip():
+                                        st.error("请填写采纳原因")
+                                    else:
+                                        st.session_state.overrides[cid] = {
+                                            "result": new_result, "note": acc_note
+                                        }
+                                        save_hr_override(cid, rule_id, ai_result,
+                                                         new_result, acc_note)
+                                        update_appeal_status(ap_id, "reviewed")
+                                        st.session_state.pop(f"ap_accept_{ap_id}", None)
+                                        st.toast(f"✅ 已采纳 {cname} 的申诉，结论调整为「{new_result}」")
+                                        st.rerun()
+                            with cancel_col:
+                                if st.button("取消", key=f"ap_acc_cancel_{ap_id}",
+                                             use_container_width=True):
+                                    st.session_state.pop(f"ap_accept_{ap_id}", None)
+                                    st.rerun()
+                            st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     st.markdown(
                         f'<div style="font-size:12px;color:#9ca3af;padding:4px 0;">'
@@ -2042,7 +2088,7 @@ render_header()
 
 _pending_appeals = len([a for a in get_all_appeals()
                         if a.get("status", "pending") == "pending"])
-_appeal_tab_label = f"📊 筛选工作台{'  🔴' if _pending_appeals else ''}"
+_appeal_tab_label = f"📊 筛选工作台{'  ' + str(_pending_appeals) if _pending_appeals else ''}"
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",

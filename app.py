@@ -873,49 +873,77 @@ def render_screening():
   {reasons_html}
 </div>
 """)
-            # HR 覆盖：三个小圆角按钮横排（对齐原版）
-            st.markdown('<p style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px;">HR 覆盖 AI 建议</p>', unsafe_allow_html=True)
-            st.caption("覆盖操作会写入审计日志，留存可查。")
-            cur_ov = ov_data.get("result", "")
-            ov_opts = ["强推进面试", "待定", "不推进"]
-            ov_cols = st.columns([1, 1, 1, 3])
-            new_ov = cur_ov
-            for i, opt in enumerate(ov_opts):
-                with ov_cols[i]:
-                    active = cur_ov == opt
-                    btn_style = "primary" if active else "secondary"
-                    if st.button(opt, key=f"ov_{opt}_{cid}", type=btn_style if active else "secondary"):
-                        new_ov = opt if opt != cur_ov else ""
-                        if new_ov:
-                            st.session_state[f"ov_pending_{cid}"] = new_ov
-                        else:
-                            st.session_state.pop(f"ov_pending_{cid}", None)
-            # 如果有待选，显示原因输入框
+            # ── HR 覆盖区域 ────────────────────────────────────────────────────
+            cur_ov    = ov_data.get("result", "")
             pending_ov = st.session_state.get(f"ov_pending_{cid}", cur_ov)
-            if pending_ov or cur_ov:
-                ov_note = st.text_input(
-                    "覆盖原因（必填，将留存记录）",
+
+            st.html("""
+<div style="margin-top:16px;padding-top:14px;border-top:1px solid #f0f0f0;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+    <span style="font-size:13px;font-weight:700;color:#374151;">HR 覆盖 AI 建议</span>
+    <span style="font-size:11px;background:#fef3c7;color:#92400e;border-radius:999px;
+                 padding:2px 8px;font-weight:500;">操作将写入审计日志，留存可查</span>
+  </div>
+</div>""")
+
+            # 三个等宽按钮
+            ov_opts = ["强推进面试", "待定", "不推进"]
+            ov_c1, ov_c2, ov_c3 = st.columns(3)
+            for col, opt in zip([ov_c1, ov_c2, ov_c3], ov_opts):
+                with col:
+                    active = (pending_ov == opt) or (not pending_ov and cur_ov == opt)
+                    if st.button(
+                        ("✓ " if active else "") + opt,
+                        key=f"ov_{opt}_{cid}",
+                        type="primary" if active else "secondary",
+                        use_container_width=True,
+                    ):
+                        if active and not cur_ov:
+                            # 取消待选（已选但未保存）
+                            st.session_state.pop(f"ov_pending_{cid}", None)
+                        else:
+                            st.session_state[f"ov_pending_{cid}"] = opt
+                        st.rerun()
+
+            # 覆盖原因输入框：只要选了某个结果就显示（含已保存状态）
+            effective_target = pending_ov or cur_ov
+            if effective_target:
+                st.html(f"""
+<div style="margin-top:10px;">
+  <span style="font-size:12px;font-weight:600;color:#374151;">覆盖原因</span>
+  <span style="font-size:11px;color:#ef4444;margin-left:4px;font-weight:600;">* 必填</span>
+  <span style="font-size:11px;color:#9ca3af;margin-left:6px;">· 将与操作记录一同写入审计日志</span>
+</div>""")
+                ov_note = st.text_area(
+                    "覆盖原因",
                     value=ov_data.get("note", ""),
                     key=f"ov_note_{cid}",
-                    placeholder="请说明覆盖原因…"
+                    placeholder=f"请说明将结果调整为「{effective_target}」的原因，例如：候选人有额外实习经历未在简历体现，面试官面谈后评估更高…",
+                    height=88,
+                    label_visibility="collapsed",
                 )
-                save_cols = st.columns([1, 4])
-                with save_cols[0]:
-                    if st.button("保存", key=f"ov_save_{cid}", type="primary"):
-                        effective_ov = pending_ov or cur_ov
+
+                s_col, c_col, _ = st.columns([2, 2, 6])
+                with s_col:
+                    if st.button("💾 保存覆盖", key=f"ov_save_{cid}", type="primary",
+                                 use_container_width=True):
                         if not ov_note.strip():
-                            st.error("覆盖原因不能为空")
+                            st.error("覆盖原因不能为空，请填写后保存")
                         else:
-                            st.session_state.overrides[cid] = {"result": effective_ov, "note": ov_note}
-                            save_hr_override(cid, rule_id, r["ai_result"], effective_ov, ov_note)
+                            st.session_state.overrides[cid] = {
+                                "result": effective_target, "note": ov_note
+                            }
+                            save_hr_override(cid, rule_id, r["ai_result"],
+                                             effective_target, ov_note)
                             st.session_state.pop(f"ov_pending_{cid}", None)
-                            st.toast(f"✅ 已覆盖为「{effective_ov}」，记录已保存")
+                            st.toast(f"✅ 已覆盖为「{effective_target}」，审计记录已保存")
                             st.rerun()
-                with save_cols[1]:
-                    if cur_ov and st.button("取消覆盖", key=f"ov_cancel_{cid}"):
+                with c_col:
+                    if cur_ov and st.button("↩ 撤销覆盖", key=f"ov_cancel_{cid}",
+                                            use_container_width=True):
                         st.session_state.overrides.pop(cid, None)
                         st.session_state.pop(f"ov_pending_{cid}", None)
-                        st.toast("已取消覆盖", icon="↩")
+                        st.toast("已撤销 HR 覆盖，恢复 AI 建议", icon="↩")
                         st.rerun()
 
         # 简历弹窗（Expander 模拟）

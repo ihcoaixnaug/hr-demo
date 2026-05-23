@@ -778,7 +778,24 @@ def render_screening():
                 if llm_r:
                     scores, reasons, ai_r, src = llm_r["scores"], llm_r["reasons"], llm_r["ai_result"], "ai"
                 else:
-                    scores, reasons, ai_r, src = cand["scores"], cand["reasons"], cand["result"], "preset"
+                    # Preset mode：将 data.py 中的预设分数按位置映射到当前锁定的 dim IDs
+                    # 避免自定义 dim IDs 与预设 score keys 不一致导致候选人视图全显示 0
+                    _p_dims    = JOB_PRESETS[cand["job"]]["dims"]
+                    _p_scores  = cand["scores"]
+                    _p_reasons = cand.get("reasons", {})
+                    scores, reasons = {}, {}
+                    for _i, _ld in enumerate(dims):
+                        if _ld["id"] in _p_scores:          # 完全匹配
+                            scores[_ld["id"]]  = _p_scores[_ld["id"]]
+                            reasons[_ld["id"]] = _p_reasons.get(_ld["id"], "")
+                        elif _i < len(_p_dims):             # 按位置回退
+                            _pd = _p_dims[_i]
+                            scores[_ld["id"]]  = _p_scores.get(_pd["id"], 50)
+                            reasons[_ld["id"]] = _p_reasons.get(_pd["id"], "")
+                        else:
+                            scores[_ld["id"]]  = 50
+                            reasons[_ld["id"]] = ""
+                    ai_r, src = cand["result"], "preset"
                 st.session_state.screening_results[cand["id"]] = {
                     "scores": scores, "reasons": reasons,
                     "ai_result": ai_r, "source": src,
@@ -1407,9 +1424,17 @@ def render_candidate_view():
 </div>""")
 
     # 维度通过/未通过行（阈值与进度条颜色对齐：≥65 蓝/绿=符合，50–64 黄=基本符合，<50 红=有待提升）
+    # 兜底：若当前 dim ID 在 scores 里查不到（历史数据 key 不匹配），按位置回退到预设分数
+    _preset_dims_cv   = JOB_PRESETS[cand["job"]]["dims"]
+    _preset_scores_cv = cand["scores"]
     dim_rows = ""
-    for d in display_dims:
-        s    = scores.get(d["id"], 0)
+    for _di, d in enumerate(display_dims):
+        if d["id"] in scores and scores[d["id"]] > 0:
+            s = scores[d["id"]]
+        elif _di < len(_preset_dims_cv):                    # 按位置回退
+            s = _preset_scores_cv.get(_preset_dims_cv[_di]["id"], 50)
+        else:
+            s = 50
         if s >= 65:
             bg_ = "#f0fdf4"; tc_ = "#166534"; tag_ = "✅ 符合要求"
         elif s >= 50:

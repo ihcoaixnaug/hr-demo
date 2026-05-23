@@ -1757,7 +1757,7 @@ st.components.v1.html("""
   html,body{margin:0;padding:0;background:transparent;overflow:hidden;}
 </style>
 <button
-  onclick="try{window.parent.scrollTo({top:0,behavior:'smooth'})}catch(e){}"
+  id="top-btn"
   onmouseenter="this.style.transform='scale(1.1)'"
   onmouseleave="this.style.transform='scale(1)'"
   title="回到顶部"
@@ -1807,6 +1807,34 @@ st.components.v1.html("""
   me.style.setProperty('height', '56px', 'important');
   me.style.setProperty('border', 'none', 'important');
   me.style.setProperty('background', 'transparent', 'important');
+
+  /* ── 点击：遍历所有可能的 Streamlit 滚动容器，找到真正在滚的那个 ── */
+  document.getElementById('top-btn').addEventListener('click', function() {
+    var pdoc = window.parent.document;
+    var candidates = [
+      pdoc.querySelector('[data-testid="stMain"]'),
+      pdoc.querySelector('[data-testid="stAppViewContainer"]'),
+      pdoc.querySelector('.main'),
+      pdoc.querySelector('.stApp'),
+      pdoc.documentElement,
+      pdoc.body,
+      window.parent,
+    ];
+    candidates.forEach(function(el) {
+      if (!el) return;
+      try {
+        // 只滚动 scrollTop > 0 的元素（真正在滚的那个）
+        var top = el.scrollTop !== undefined ? el.scrollTop : el.scrollY;
+        if (top > 0) {
+          if (typeof el.scrollTo === 'function') {
+            el.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            el.scrollTop = 0;
+          }
+        }
+      } catch(e) {}
+    });
+  });
 })();
 </script>
 """, height=56)

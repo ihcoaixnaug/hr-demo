@@ -541,7 +541,7 @@ def render_rule_builder():
             st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
             _ca, _cb, _cc = st.columns([1, 1, 1], vertical_alignment="center")
             with _ca:
-                if st.button(f"📋 查看 JD", key=f"jd_btn_{jk_l}",
+                if st.button(f"📋 查看岗位 JD", key=f"jd_btn_{jk_l}",
                              use_container_width=True):
                     _jd_dialog(jl_l, preset_l["jd"])
             with _cb:

@@ -295,6 +295,14 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover{
 .element-container{margin-bottom:6px!important;}
 div[data-testid="stVerticalBlock"]>div{gap:8px!important;}
 
+/* ══ 列容器不裁切子元素（防止 pill 按钮圆角被 overflow:hidden 裁掉） ══════ */
+[data-testid="column"]{
+  overflow:visible!important;
+}
+[data-testid="column"] .element-container{
+  overflow:visible!important;
+}
+
 /* ══ 候选人卡片操作按钮行：确保文字不截断 ═══════════════════════════════════ */
 .cand-action-btn .stButton>button{
   font-size:12.5px!important;
@@ -342,8 +350,9 @@ hr{border:none!important;border-top:1px solid var(--border-lt)!important;margin:
 /* ══ Markdown 内容区排版 ═════════════════════════════════════════════════ */
 .stMarkdown p{
   font-size:14px!important;
-  color:var(--tx-1)!important;
   line-height:1.7!important;
+  /* color 不加 !important，让内联 style 可以正常覆盖（否则深色卡片内文字变黑不可见） */
+  color:var(--tx-1);
 }
 </style>
 """, unsafe_allow_html=True)

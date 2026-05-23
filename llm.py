@@ -42,6 +42,86 @@ def has_api_key() -> bool:
     return bool(_api_key())
 
 
+# ─── 维度提取（与 JD 任职要求一一对应） ───────────────────────────────────────
+
+def extract_dims_from_jd(jd: str, job_label: str = "") -> list | None:
+    """
+    从 JD 的「任职要求」中提取评估维度，每条要求对应且仅对应一个维度。
+    返回格式：
+        [{"id": str, "label": str, "weight": int}, ...]
+    失败时返回 None，调用方回退到预设维度。
+    """
+    api_key = _api_key()
+    if not api_key:
+        return None
+
+    prompt = f"""你是一名 HR 规则构建助手。请从以下招聘 JD 中提取评估维度。
+
+【岗位】{job_label}
+
+【JD 原文】
+{jd}
+
+【提取规则（严格执行，违反则结果无效）】
+1. 只读取 JD 中「任职要求」部分的每一条要求
+2. 每条任职要求 → 对应且仅对应一个评估维度，顺序与原文保持一致
+3. 维度 label 用 4-8 个汉字概括该条要求的核心能力点
+4. 维度 id 用英文小写+下划线命名（如 project_exp、coding_skill）
+5. 各维度权重初始设为相等（总计恰好 100%；若不能整除，将余数加到最后一个维度）
+6. 绝对禁止：不得合并多条要求为一个维度，不得凭空增加 JD 未写明的维度
+
+【输出格式 — 只输出 JSON，不要任何其他内容】
+{{
+  "dims": [
+    {{"id": "dim_id", "label": "维度名称", "weight": 25}},
+    ...
+  ]
+}}"""
+
+    try:
+        resp = requests.post(
+            f"{OPENROUTER_BASE}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://zhishai.streamlit.app",
+                "X-Title": "智筛 AI",
+            },
+            json={
+                "model": _model(),
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "response_format": {"type": "json_object"},
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        data = json.loads(content)
+
+        dims = data.get("dims")
+        if not dims or not isinstance(dims, list):
+            return None
+
+        # 校验每个维度的必要字段
+        for d in dims:
+            if not all(k in d for k in ("id", "label", "weight")):
+                return None
+
+        # 确保权重总和 = 100（防模型输出误差）
+        total = sum(d["weight"] for d in dims)
+        if total != 100:
+            diff = 100 - total
+            dims[-1]["weight"] += diff
+
+        return dims
+
+    except Exception as e:
+        import logging
+        logging.warning(f"[智筛 LLM] 维度提取失败，回退预设: {e}")
+        return None
+
+
 # ─── 简历评分 ─────────────────────────────────────────────────────────────────
 
 def screen_candidate_with_llm(candidate: dict, dims: list, jd: str) -> dict | None:

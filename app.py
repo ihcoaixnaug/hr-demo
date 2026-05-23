@@ -15,7 +15,7 @@ from database import (
     add_to_pool_db, remove_from_pool_db, get_pool_db,
     save_appeal,
 )
-from llm import screen_candidate_with_llm, has_api_key
+from llm import screen_candidate_with_llm, extract_dims_from_jd, has_api_key
 
 # ─── 页面基础配置 ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -412,9 +412,19 @@ def render_rule_builder():
     def _load_job(key):
         p = JOB_PRESETS[key]
         st.session_state.selected_job = key
-        st.session_state.editing_dims = copy.deepcopy(p["dims"])
-        for d in p["dims"]:
+        # ── AI 提取：每条任职要求 → 一个维度 ──────────────────────────────────
+        extracted = None
+        if has_api_key():
+            with st.spinner("AI 正在从 JD 任职要求提取评估维度…"):
+                extracted = extract_dims_from_jd(p["jd"], p["label"])
+        dims = extracted if extracted else copy.deepcopy(p["dims"])
+        st.session_state.editing_dims = dims
+        for d in dims:
             st.session_state[f"w_{d['id']}"] = d["weight"]
+        if extracted:
+            st.session_state["dims_from_ai"] = True
+        else:
+            st.session_state["dims_from_ai"] = False
         st.rerun()
 
     c1, c2 = st.columns(2)
@@ -450,12 +460,22 @@ def render_rule_builder():
     edit_dims = st.session_state.editing_dims or copy.deepcopy(preset["dims"])
     st.session_state.editing_dims = edit_dims
 
-    st.html(f"""
+    dims_from_ai = st.session_state.get("dims_from_ai", False)
+    if dims_from_ai:
+        st.html(f"""
+<div style="display:flex;align-items:center;gap:8px;
+            background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;
+            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#1e40af;">
+  <span style="font-size:15px;">🤖</span>
+  <span>AI 已从「<strong>{preset["label"]}」JD 任职要求</strong>提取维度（每条要求对应一个维度），可调整权重后锁定</span>
+</div>""")
+    else:
+        st.html(f"""
 <div style="display:flex;align-items:center;gap:8px;
             background:#f0fdf4;border:1px solid #86efac;border-radius:10px;
             padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#166534;">
   <span style="font-size:15px;">✅</span>
-  <span>已加载「<strong>{preset["label"]}</strong>」评估维度，可调整权重后锁定</span>
+  <span>已加载「<strong>{preset["label"]}</strong>」预设评估维度，可调整权重后锁定</span>
 </div>""")
 
     with st.expander("查看岗位 JD"):

@@ -505,17 +505,15 @@ def render_rule_builder():
 """, unsafe_allow_html=True)
 
             st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
-            _ca, _cb, _cc = st.columns([4, 4, 2])
+            _ca, _cb, _cc = st.columns([4, 4, 2], vertical_alignment="center")
             with _ca:
                 with st.expander(f"📋 查看{jl_l} JD"):
                     st.code(preset_l["jd"], language=None)
             with _cb:
-                st.markdown('<div style="margin-top:5px;"></div>', unsafe_allow_html=True)
                 if st.button("📄 查看规则公示页", key=f"open_pub_{jk_l}"):
                     st.session_state.public_html = build_public_page_html(
                         dims_l, fp_l, at_l, jl_l)
             with _cc:
-                st.markdown('<div style="margin-top:5px;"></div>', unsafe_allow_html=True)
                 if st.button("🗑 清除规则", key=f"reset_job_{jk_l}"):
                     del st.session_state.locked_jobs[jk_l]
                     if st.session_state.active_job == jk_l:
@@ -844,7 +842,13 @@ def render_screening():
   <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;
               border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(59,130,246,.08);">
     <div style="font-size:11px;font-weight:600;color:#1e40af;text-transform:uppercase;
-                letter-spacing:.05em;margin-bottom:6px;">AI 自动处理</div>
+                letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+      AI 自动处理
+      <span title="(强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份 = {auto}%&#10;无需 HR 介入；剩余待定 {p_n} 份需人工复核"
+            style="display:inline-flex;align-items:center;justify-content:center;
+                   width:14px;height:14px;border-radius:50%;border:1.5px solid #93c5fd;
+                   color:#3b82f6;font-size:9px;font-weight:700;cursor:default;flex-shrink:0;">?</span>
+    </div>
     <div style="font-size:28px;font-weight:800;color:#1e40af;letter-spacing:-.03em;">{auto}<span style="font-size:14px;font-weight:500;"> %</span></div>
   </div>
 </div>""")
@@ -852,7 +856,7 @@ def render_screening():
     # ── 漏斗预估：基于当前强推率推算全量 12000 份简历的到面人数 ─────────────────
     if n > 0:
         # 计划招聘人数（可调节）
-        _fc, _nc = st.columns([5, 1])
+        _, _nc = st.columns([5, 1])
         with _nc:
             hiring_target = st.number_input(
                 "计划招聘人数",
@@ -863,14 +867,6 @@ def render_screening():
                 help="用于计算「到面录取比」= 预计进入面试人数 / 计划招聘人数",
             )
             st.session_state.hiring_target = hiring_target
-        with _fc:
-            # AI 自动处理说明
-            st.html(f"""
-<div style="font-size:12px;color:#6b7280;padding:6px 0;line-height:1.7;">
-  <strong style="color:#374151;">AI 自动处理 {auto}%</strong>
-  = (强推 {s_n} + 不推进 {rej}) ÷ 本批 {n} 份，无需 HR 介入；
-  剩余 <strong style="color:#374151;">待定 {p_n} 份（{100-auto}%）</strong> 需人工复核。
-</div>""")
 
         proj_interviews = round(12000 * s_n / n)
         ratio_val       = proj_interviews / hiring_target if hiring_target else 0
@@ -887,7 +883,7 @@ def render_screening():
             display:flex;align-items:center;gap:24px;flex-wrap:wrap;
             box-shadow:0 1px 4px rgba(0,0,0,.05);">
   <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-              letter-spacing:.05em;white-space:nowrap;">📐 全量推算（基于本批 {n} 份）</div>
+              letter-spacing:.05em;white-space:nowrap;">📐 全量推算</div>
   <div style="display:flex;align-items:baseline;gap:6px;">
     <span style="font-size:24px;font-weight:800;color:#111827;">{proj_interviews}</span>
     <span style="font-size:13px;color:#6b7280;">人预计进入面试 / 12,000 份简历</span>

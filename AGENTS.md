@@ -202,6 +202,25 @@ pool(candidate_id, added_by, note, created_at)
 
 ---
 
+## LLM 调用清单
+
+项目有两处独立的 LLM 调用（都在 `llm.py`）：
+
+| 函数 | 触发时机 | 作用 | 失败处理 |
+|------|---------|------|---------|
+| `extract_dims_from_jd(jd, job_label)` | Rule Builder 点击岗位按钮时 | 从 JD 任职要求提取评估维度（每条要求 → 一个维度，1:1，不合并不增加） | 回退到 `data.py` 预设维度 |
+| `screen_candidate_with_llm(candidate, dims, jd)` | 筛选工作台点击「开始筛选」时 | 按锁定维度对简历打分，返回各维度分数+理由+推荐结论 | 回退到 `data.py` 预设分数 |
+
+### extract_dims_from_jd 关键 Prompt 规则
+
+- 只读「任职要求」部分，每条 → 一个维度，顺序一致
+- 维度 label：4-8 个汉字，概括核心能力点
+- 权重初始相等（总计 100%，余数加到最后一个）
+- **禁止**合并多条要求 / 凭空增加维度
+- 提取结果仅用于 Rule Builder 显示（供 HR 调整权重后锁定），不直接影响筛选 Prompt
+
+---
+
 ## 常用命令速查
 
 ```bash

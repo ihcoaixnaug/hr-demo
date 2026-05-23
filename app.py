@@ -180,6 +180,7 @@ def _init():
         "appeal_submitted":  set(),
         "public_html":       "",
         "selected_cands":    [],
+        "goto_tab":          -1,
         "cv_selected":       "B",
     }
     for k, v in defs.items():
@@ -380,8 +381,8 @@ def render_rule_builder():
                 st.rerun()
         with c_hint:
             if st.button("📊 前往筛选工作台 →", key="goto_screen", type="primary"):
-                # Switch tab — 通过 query param 无法直接切，提示用户
-                st.success("请点击上方「📊 筛选工作台」标签页")
+                st.session_state.goto_tab = 1   # 筛选工作台 = index 1
+                st.rerun()
 
         # 公示页
         st.markdown("---")
@@ -1214,3 +1215,21 @@ with tab4:
     render_pool_view()
 with tab5:
     render_verification()
+
+# ── Tab 跳转：rerun 后注入 JS 点击目标 Tab ───────────────────────────────────
+_goto = st.session_state.get("goto_tab", -1)
+if _goto >= 0:
+    st.session_state.goto_tab = -1   # 立即重置，避免循环触发
+    st.components.v1.html(f"""
+<script>
+  // 等 Streamlit 渲染完 Tab DOM 再点击
+  (function click(attempt) {{
+    var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+    if (tabs.length > {_goto}) {{
+      tabs[{_goto}].click();
+    }} else if (attempt < 20) {{
+      setTimeout(function() {{ click(attempt + 1); }}, 80);
+    }}
+  }})(0);
+</script>
+""", height=0)

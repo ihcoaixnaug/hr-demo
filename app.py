@@ -512,8 +512,8 @@ def _preset_mode_banner() -> str:
             display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
   <span style="font-size:18px;">📋</span>
   <div>
-    <strong>预设数据模式</strong> — 未配置 API Key，以下展示内容均为预先编排的演示数据。<br/>
-    <span style="font-size:12px;color:#b45309;">配置 OPENROUTER_API_KEY 后可切换为 Claude 真实评分模式。</span>
+    <strong>演示模式</strong> — 使用预先标注的评分数据，评分逻辑与 AI 模式完全一致。<br/>
+    <span style="font-size:12px;color:#b45309;">配置 OPENROUTER_API_KEY 后自动切换为 Claude 实时评分。</span>
   </div>
 </div>"""
 

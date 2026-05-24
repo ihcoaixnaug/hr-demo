@@ -1934,50 +1934,6 @@ def render_candidate_view():
   </div>
 </div>""")
 
-        if revealed:
-            st.html("""
-<div style="margin-bottom:10px;">
-  <span style="font-size:13px;font-weight:700;color:#374151;">📋 申诉维度 · AI 评估依据</span>
-  <span style="font-size:11.5px;color:#6b7280;margin-left:8px;">
-    分数不对外披露，仅展示 AI 作出判断所依据的具体理由
-  </span>
-</div>""")
-            for dim_id in revealed:
-                dim_info = next((d for d in display_dims if d["id"] == dim_id), None)
-                if not dim_info:
-                    continue
-                rv      = reasons.get(dim_id, "暂无详细理由。")
-                passed  = scores.get(dim_id, 0) >= 65   # 内部判断，不对外展示数值
-                tag_txt = "✅ 符合要求" if passed else "⚠ 有待提升"
-                tag_c   = "#166534"   if passed else "#991b1b"
-                tag_bg  = "#f0fdf4"   if passed else "#fef2f2"
-                st.html(f"""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:14px 18px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <span style="font-size:13px;font-weight:700;color:#374151;">
-      {dim_info["label"]}
-      <span style="font-size:11px;color:#9ca3af;font-weight:400;margin-left:6px;">
-        权重 {dim_info["weight"]}%</span>
-    </span>
-    <span style="background:{tag_bg};color:{tag_c};border-radius:999px;
-                 padding:3px 10px;font-size:12px;font-weight:600;">{tag_txt}</span>
-  </div>
-  <p style="font-size:12.5px;color:#4b5563;line-height:1.7;margin:0 0 10px;">
-    <strong style="color:#374151;">AI 判断依据：</strong>{rv}</p>
-  <div style="background:#F0F4FA;border-radius:8px;padding:9px 12px;
-              font-size:12px;color:#475569;line-height:1.55;">
-    💬 如您认为上述依据存在遗漏，请在申诉补充材料中提供具体证明（项目链接、作品集等）
-  </div>
-</div>""")
-
-            st.html("""
-<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;
-            padding:12px 16px;font-size:12px;color:#6b7280;line-height:1.65;margin-top:4px;">
-  ℹ 具体分数不在此阶段披露。如您有新证据，可回复投递确认邮件补充，
-  校招团队将在复核时一并参考，并告知最终复核结论。
-</div>""")
-
     elif st.session_state.get(ao_key):
         # ── 申诉表单：结构化填写 ─────────────────────────────────────────
         st.html("""
@@ -1988,9 +1944,7 @@ def render_candidate_view():
   </div>
   <div style="font-size:13px;color:#6b7280;line-height:1.65;margin-bottom:16px;
               padding-bottom:14px;border-bottom:1px solid #f0f0f0;">
-    请指定您认为评估有误的维度，并说明 AI 可能遗漏的具体证据。<br/>
-    <strong style="color:#374151;">提交后将显示该维度的详细评分理由</strong>，
-    帮助您判断是否继续申诉。
+    请指定您认为评估有误的维度，并说明 AI 可能遗漏的具体证据。
   </div>
 </div>""")
 

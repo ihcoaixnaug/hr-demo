@@ -759,23 +759,20 @@ def render_rule_builder():
                    f'padding:2px 8px;font-size:11px;font-weight:600;">✓ 已锁定</span>'
                    if is_done else "")
         with col:
+            _mb = "margin-bottom:-8px;" if (not is_sel and not is_done) else "margin-bottom:4px;"
             st.html(f"""
 <div style="border:2px solid {_border};border-radius:14px;background:{_bg};
-            padding:18px 20px 10px;margin-bottom:-8px;">
+            padding:18px 20px 14px;{_mb}">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <span style="font-size:17px;font-weight:800;color:#111827;">{emoji} {p['label']}</span>
     {_badge}
   </div>
   <p style="font-size:13px;color:#6b7280;margin:0;">{p['desc']}</p>
 </div>""")
-            if st.button(
-                "已锁定" if is_done else ("▶ 当前选中" if is_sel else "选择此岗位 →"),
-                key=btn_key,
-                use_container_width=True,
-                type="primary" if is_sel else "secondary",
-                disabled=is_done,
-            ):
-                _load_job(jk_opt)
+            if not is_sel and not is_done:
+                if st.button("选择此岗位 →", key=btn_key,
+                             use_container_width=True, type="secondary"):
+                    _load_job(jk_opt)
 
     jk = st.session_state.selected_job
     if not jk:

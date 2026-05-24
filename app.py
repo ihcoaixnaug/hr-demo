@@ -2235,6 +2235,15 @@ def render_verification():
     # ── 一键加载锁定规则权重 ──────────────────────────────────────────────────
     _off_job = st.session_state.get("offline_job")
     _locked  = st.session_state.get("locked_jobs", {})
+    # 在线模式下，若只有一个锁定岗位，自动关联；否则让用户选
+    if not _off_job and _locked:
+        _candidates = [jk for jk in _locked if any(
+            d["label"] == vd["label"] for d in _locked[jk]["dims"] for vd in verify_dims
+        )]
+        if len(_candidates) == 1:
+            _off_job = _candidates[0]
+        elif len(_locked) == 1:
+            _off_job = list(_locked.keys())[0]
     if _off_job and _off_job in _locked:
         _locked_dims = _locked[_off_job]["dims"]
         _locked_fp   = _locked[_off_job]["fingerprint"]

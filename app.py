@@ -1635,25 +1635,18 @@ def render_screening():
 </div>""")
 
                 if status == "pending":
-                    a_col, b_col, c_col, _ = st.columns([2, 2, 2, 4])
+                    a_col, b_col, _ = st.columns([2, 2, 6])
                     with a_col:
                         if st.button("✅ 维持原判", key=f"ap_rev_{ap_id}",
-                                     use_container_width=True, type="primary"):
+                                     use_container_width=True):
                             update_appeal_status(ap_id, "reviewed")
                             st.toast(f"✅ {cname} 的申诉已复核，维持原结论")
                             st.session_state.pop(f"ap_accept_{ap_id}", None)
                             st.rerun()
                     with b_col:
                         if st.button("🔄 采纳申诉", key=f"ap_acc_{ap_id}",
-                                     use_container_width=True):
+                                     use_container_width=True, type="primary"):
                             st.session_state[f"ap_accept_{ap_id}"] = True
-                    with c_col:
-                        if st.button("❌ 驳回申诉", key=f"ap_dis_{ap_id}",
-                                     use_container_width=True):
-                            update_appeal_status(ap_id, "dismissed")
-                            st.toast(f"已驳回 {cname} 的申诉")
-                            st.session_state.pop(f"ap_accept_{ap_id}", None)
-                            st.rerun()
 
                     if st.session_state.get(f"ap_accept_{ap_id}"):
                         ai_result = st.session_state.screening_results.get(cid, {}).get("ai_result", "不推进")
@@ -2042,8 +2035,9 @@ def render_candidate_view():
 
         elif _ap_status == "reviewed":
             # HR 复核通过 → 检查是否有 HR 覆盖（结果是否实际变更）
+            # 注意：final 已含覆盖，须与原始 AI 结论 ai_r 比较才能检测变更
             _ov = st.session_state.overrides.get(sel, {})
-            _changed = bool(_ov.get("result")) and _ov["result"] != final
+            _changed = bool(_ov.get("result")) and _ov["result"] != ai_r
             if _changed:
                 st.html(f"""
 <div style="background:#f0fdf4;border:1.5px solid #16a34a;border-radius:14px;
@@ -2072,16 +2066,16 @@ def render_candidate_view():
 </div>""")
 
         elif _ap_status == "dismissed":
+            # 历史数据兼容：dismissed 合并按 reviewed + 无变更展示
             st.html("""
-<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;
+<div style="background:#F0F4FA;border:1.5px solid #C8D8EA;border-radius:14px;
             padding:16px 20px;margin-bottom:12px;">
-  <div style="font-size:14px;font-weight:700;color:#991b1b;margin-bottom:6px;">
-    ❌ 申诉未通过受理
+  <div style="font-size:14px;font-weight:700;color:#1A1714;margin-bottom:6px;">
+    📋 申诉复核完成 · 维持原结论
   </div>
-  <div style="font-size:13px;color:#b91c1c;line-height:1.65;">
-    您提交的申诉材料未满足复核标准（缺乏可核实的具体证据），本次申诉不予受理。<br/>
-    如您有新的证明材料（项目链接、量化成果、证书等），
-    可通过投递邮箱重新提交，校招团队将再次评估。
+  <div style="font-size:13px;color:#475569;line-height:1.65;">
+    校招团队已对您申诉的维度进行人工复核，基于现有材料，<strong>原评估结论不变</strong>。<br/>
+    如有新的可核实证据（项目链接、证书等），可通过投递邮箱补充后再次申请。
   </div>
 </div>""")
 

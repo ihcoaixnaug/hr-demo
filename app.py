@@ -820,40 +820,42 @@ def render_rule_builder():
 </div>""")
 
     # 维度权重卡
+    _bar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
     with st.container(border=True):
         new_dims = []
         total = 0
-        for d in edit_dims:
-            w = st.slider(
-                d["label"], min_value=5, max_value=60,
-                value=st.session_state.get(f"w_{d['id']}", d["weight"]),
-                step=5, key=f"w_{d['id']}", format="%d%%",
-            )
-            new_dims.append({**d, "weight": w})
-            total += w
-        st.session_state.editing_dims = new_dims
+        # 先读一轮当前值，用于画色块条
+        _cur_weights = [st.session_state.get(f"w_{d['id']}", d["weight"]) for d in edit_dims]
 
-        # 权重分布可视化
-        _bar_colors = ["#6366f1","#06b6d4","#10b981","#f59e0b","#f43f5e","#8b5cf6","#0ea5e9"]
+        # 色块条
         _bars_html = "".join(
-            f'<div title="{d["label"]} {d["weight"]}%" style="flex:{d["weight"]};'
-            f'background:{_bar_colors[i % len(_bar_colors)]};height:8px;'
-            f'{"border-radius:6px 0 0 6px;" if i==0 else ""}'
-            f'{"border-radius:0 6px 6px 0;" if i==len(new_dims)-1 else ""}"></div>'
-            for i, d in enumerate(new_dims)
+            f'<div style="flex:{w};background:{_bar_colors[i % len(_bar_colors)]};height:10px;'
+            f'{"border-radius:6px 0 0 6px;" if i == 0 else ""}'
+            f'{"border-radius:0 6px 6px 0;" if i == len(edit_dims)-1 else ""}"></div>'
+            for i, (d, w) in enumerate(zip(edit_dims, _cur_weights))
         )
-        _labels_html = "".join(
-            f'<span style="flex:{d["weight"]};font-size:10px;color:#6b7280;'
-            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-            f'text-align:center;">{d["label"]}<br/>'
-            f'<strong style="color:#374151;">{d["weight"]}%</strong></span>'
-            for d in new_dims
-        )
-        st.html(f"""
-<div style="margin:10px 0 6px;">
-  <div style="display:flex;border-radius:6px;overflow:hidden;gap:2px;">{_bars_html}</div>
-  <div style="display:flex;margin-top:4px;gap:2px;">{_labels_html}</div>
-</div>""")
+        st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_bars_html}</div>')
+
+        # 数字输入框：与色块对应，每维度一列
+        inp_cols = st.columns(len(edit_dims))
+        for i, (col, d) in enumerate(zip(inp_cols, edit_dims)):
+            with col:
+                st.html(
+                    f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+                    f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
+                    f'background:{_bar_colors[i % len(_bar_colors)]};display:inline-block;"></span>'
+                    f'<span style="font-size:12px;font-weight:600;color:#374151;'
+                    f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span>'
+                    f'</div>'
+                )
+                w = st.number_input(
+                    d["label"], min_value=5, max_value=60, step=5,
+                    value=st.session_state.get(f"w_{d['id']}", d["weight"]),
+                    key=f"w_{d['id']}", label_visibility="collapsed",
+                )
+                new_dims.append({**d, "weight": w})
+                total += w
+        st.session_state.editing_dims = new_dims
 
         if total == 100:
             st.markdown(f'<span style="background:#dcfce7;color:#166534;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 {total}%</span>', unsafe_allow_html=True)

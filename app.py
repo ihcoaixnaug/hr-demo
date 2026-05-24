@@ -751,27 +751,25 @@ def render_rule_builder():
         pm_sel = st.session_state.selected_job == "pm"
         pm_done = "pm" in locked_jobs
         if st.button(
-            f"🎯  {pm['label']}" + (" ✓ 已锁定" if pm_done else ""),
+            f"🎯  {pm['label']}" + (" ✓ 已锁定" if pm_done else "") + f"\n{pm['desc']}",
             key="sel_pm",
             use_container_width=True,
             type="primary" if pm_sel else "secondary",
             disabled=pm_done,
         ):
             _load_job("pm")
-        st.caption(pm["desc"])
     with c2:
         dev = JOB_PRESETS["dev"]
         dev_sel = st.session_state.selected_job == "dev"
         dev_done = "dev" in locked_jobs
         if st.button(
-            f"⚙️  {dev['label']}" + (" ✓ 已锁定" if dev_done else ""),
+            f"⚙️  {dev['label']}" + (" ✓ 已锁定" if dev_done else "") + f"\n{dev['desc']}",
             key="sel_dev",
             use_container_width=True,
             type="primary" if dev_sel else "secondary",
             disabled=dev_done,
         ):
             _load_job("dev")
-        st.caption(dev["desc"])
 
     jk = st.session_state.selected_job
     if not jk:

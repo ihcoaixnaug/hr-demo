@@ -713,24 +713,25 @@ def render_rule_builder():
         st.markdown("---")
 
     # ══ 规则构建 UI ══════════════════════════════════════════════════════════
+    rule_step = st.session_state.get("rule_step", 1)
+    jk = st.session_state.selected_job
+    if not jk and rule_step > 1:
+        st.session_state["rule_step"] = 1
+        rule_step = 1
+
     st.html(f"""
 <div style="margin-bottom:20px;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
     <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">规则构建</h2>
     {_role_badge("HR 视角")}
   </div>
-  <p style="font-size:14px;color:#6b7280;margin:0;">
-    选择招募岗位，AI 自动加载评估维度，确认后一键锁定并生成公示指纹
-  </p>
 </div>""")
 
-    # 岗位选择（单击即加载）
-    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 10px;">选择招募岗位</p>')
+    _rule_step_bar(rule_step)
 
     def _load_job(key):
         p = JOB_PRESETS[key]
         st.session_state.selected_job = key
-        # ── AI 提取：每条任职要求 → 一个维度 ──────────────────────────────────
         extracted = None
         if has_api_key():
             with st.spinner("AI 正在从 JD 任职要求提取评估维度…"):
@@ -739,29 +740,29 @@ def render_rule_builder():
         st.session_state.editing_dims = dims
         for d in dims:
             st.session_state[f"w_{d['id']}"] = d["weight"]
-        if extracted:
-            st.session_state["dims_from_ai"] = True
-        else:
-            st.session_state["dims_from_ai"] = False
+        st.session_state["dims_from_ai"] = bool(extracted)
+        st.session_state["rule_step"] = 2
         st.rerun()
 
-    c1, c2 = st.columns(2)
-    for col, jk_opt, emoji, btn_key in [
-        (c1, "pm",  "🎯", "sel_pm"),
-        (c2, "dev", "⚙️", "sel_dev"),
-    ]:
-        p       = JOB_PRESETS[jk_opt]
-        is_sel  = st.session_state.selected_job == jk_opt
-        is_done = jk_opt in locked_jobs
-        _border = "#6366f1" if is_sel else ("#10b981" if is_done else "#e5e7eb")
-        _bg     = "#f5f3ff" if is_sel else ("#f0fdf4" if is_done else "#ffffff")
-        _badge  = (f'<span style="background:#dcfce7;color:#166534;border-radius:999px;'
-                   f'padding:2px 8px;font-size:11px;font-weight:600;">✓ 已锁定</span>'
-                   if is_done else "")
-        with col:
-            if is_sel or is_done:
-                # 已选中 / 已锁定：静态卡片，无需交互
-                st.html(f"""
+    _bar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
+
+    # ── Step 1: 选择岗位 ────────────────────────────────────────────────────
+    if rule_step == 1:
+        c1, c2 = st.columns(2)
+        for col, jk_opt, emoji, btn_key in [
+            (c1, "pm",  "🎯", "sel_pm"),
+            (c2, "dev", "⚙️", "sel_dev"),
+        ]:
+            p       = JOB_PRESETS[jk_opt]
+            is_done = jk_opt in locked_jobs
+            _border = "#10b981" if is_done else "#e5e7eb"
+            _bg     = "#f0fdf4" if is_done else "#ffffff"
+            _badge  = (f'<span style="background:#dcfce7;color:#166534;border-radius:999px;'
+                       f'padding:2px 8px;font-size:11px;font-weight:600;">✓ 已锁定</span>'
+                       if is_done else "")
+            with col:
+                if is_done:
+                    st.html(f"""
 <div style="border:2px solid {_border};border-radius:14px;background:{_bg};padding:18px 20px 18px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <span style="font-size:17px;font-weight:800;color:#111827;">{emoji} {p['label']}</span>
@@ -769,11 +770,10 @@ def render_rule_builder():
   </div>
   <p style="font-size:13px;color:#6b7280;margin:0;">{p['desc']}</p>
 </div>""")
-            else:
-                # 未选中：整张卡片 = 可点击按钮
-                _mid = f"jcm_{jk_opt}"
-                st.markdown(f'<div id="{_mid}"></div>', unsafe_allow_html=True)
-                st.markdown(f"""<style>
+                else:
+                    _mid = f"jcm_{jk_opt}"
+                    st.markdown(f'<div id="{_mid}"></div>', unsafe_allow_html=True)
+                    st.markdown(f"""<style>
 div:has(> div > [id="{_mid}"]) + div [data-testid^="stBaseButton"] button {{
     border: 2px solid #e5e7eb !important;
     border-radius: 14px !important;
@@ -808,117 +808,131 @@ div:has(> div > [id="{_mid}"]) + div [data-testid^="stBaseButton"] button:hover 
     background: #fafafa !important;
 }}
 </style>""", unsafe_allow_html=True)
-                if st.button(f"{emoji} {p['label']}", key=btn_key, use_container_width=True):
-                    _load_job(jk_opt)
+                    if st.button(f"{emoji} {p['label']}", key=btn_key, use_container_width=True):
+                        _load_job(jk_opt)
 
-    jk = st.session_state.selected_job
-    if not jk:
-        st.markdown('<p style="font-size:13px;color:#9ca3af;margin-top:10px;">👆 请先选择岗位，系统自动加载对应的评估维度</p>', unsafe_allow_html=True)
-        return
+    # ── Step 2: 配置权重 ─────────────────────────────────────────────────────
+    elif rule_step == 2:
+        preset    = JOB_PRESETS[jk]
+        edit_dims = st.session_state.editing_dims or copy.deepcopy(preset["dims"])
+        st.session_state.editing_dims = edit_dims
+        dims_from_ai = st.session_state.get("dims_from_ai", False)
 
-    preset    = JOB_PRESETS[jk]
-    edit_dims = st.session_state.editing_dims or copy.deepcopy(preset["dims"])
-    st.session_state.editing_dims = edit_dims
+        _src = "AI 从 JD 任职要求提取" if dims_from_ai else "预设"
+        st.html(f'<p style="font-size:13px;color:#6b7280;margin:0 0 10px;">'
+                f'已加载「<strong style="color:#111827;">{preset["label"]}</strong>」{_src}的 '
+                f'<strong style="color:#111827;">{len(edit_dims)}</strong> 个评估维度，调整权重后继续</p>')
 
-    dims_from_ai = st.session_state.get("dims_from_ai", False)
-    if dims_from_ai:
-        st.html(f"""
-<div style="display:flex;align-items:center;gap:8px;
-            background:#F0F4FA;border:1px solid #C8D8EA;border-radius:10px;
-            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#3D3A36;">
-  <span style="font-size:15px;">🤖</span>
-  <span>AI 已从「<strong>{preset["label"]}」JD 任职要求</strong>提取维度（每条要求对应一个维度），可调整权重后锁定</span>
-</div>""")
-    else:
-        st.html(f"""
-<div style="display:flex;align-items:center;gap:8px;
-            background:#f0fdf4;border:1px solid #86efac;border-radius:10px;
-            padding:10px 14px;margin:16px 0 8px;font-size:13px;color:#166534;">
-  <span style="font-size:15px;">✅</span>
-  <span>已加载「<strong>{preset["label"]}</strong>」预设评估维度，可调整权重后锁定</span>
-</div>""")
+        if st.button("📋 查看岗位 JD", key="jd_btn_rule_builder"):
+            _jd_dialog(preset["label"], preset["jd"])
 
-    if st.button("📋 查看岗位 JD", key="jd_btn_rule_builder"):
-        _jd_dialog(preset["label"], preset["jd"])
+        with st.container(border=True):
+            new_dims = []
+            total = 0
+            _cur_weights = [st.session_state.get(f"w_{d['id']}", d["weight"]) for d in edit_dims]
+            _bars_html = "".join(
+                f'<div style="flex:{w};background:{_bar_colors[i % len(_bar_colors)]};height:10px;'
+                f'{"border-radius:6px 0 0 6px;" if i == 0 else ""}'
+                f'{"border-radius:0 6px 6px 0;" if i == len(edit_dims)-1 else ""}"></div>'
+                for i, (d, w) in enumerate(zip(edit_dims, _cur_weights))
+            )
+            st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_bars_html}</div>')
+            inp_cols = st.columns(len(edit_dims))
+            for i, (col, d) in enumerate(zip(inp_cols, edit_dims)):
+                with col:
+                    st.html(
+                        f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+                        f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
+                        f'background:{_bar_colors[i % len(_bar_colors)]};display:inline-block;"></span>'
+                        f'<span style="font-size:12px;font-weight:600;color:#374151;'
+                        f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span>'
+                        f'</div>'
+                    )
+                    w = st.number_input(
+                        d["label"], min_value=5, max_value=60, step=5,
+                        value=st.session_state.get(f"w_{d['id']}", d["weight"]),
+                        key=f"w_{d['id']}", label_visibility="collapsed",
+                    )
+                    new_dims.append({**d, "weight": w})
+                    total += w
+            st.session_state.editing_dims = new_dims
 
-    # 业务需求方参与说明
-    st.html("""
-<div style="background:#EFF4FF;border:1px solid #C7D9FF;border-radius:12px;
-            padding:12px 16px;margin:10px 0 16px;font-size:13px;color:#1E3A8A;
-            display:flex;gap:10px;align-items:flex-start;">
-  <span style="font-size:16px;flex-shrink:0;">💼</span>
-  <span>
-    <strong>此步骤由 HR 与业务需求方共同完成</strong>——业务方决定哪个能力维度更重要，
-    权重反映的是岗位的真实能力优先级。<br/>
-    <span style="color:#3B5FC0;">
-    业务方希望优先筛选「有能力的人」，这套维度体系直接测量岗位所需能力，
-    比学历标签给出更准确的信号。
-    </span>
-  </span>
-</div>""")
+            if total == 100:
+                st.markdown(f'<span style="background:#dcfce7;color:#166534;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 {total}%</span>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">⚠ 总计 {total}%，需调整至 100%</span>', unsafe_allow_html=True)
 
-    # 维度权重卡
-    _bar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
-    with st.container(border=True):
-        new_dims = []
-        total = 0
-        # 先读一轮当前值，用于画色块条
-        _cur_weights = [st.session_state.get(f"w_{d['id']}", d["weight"]) for d in edit_dims]
+        st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+        _nl, _nr = st.columns(2)
+        with _nl:
+            if st.button("← 上一步", key="rule_back_1", use_container_width=True):
+                st.session_state["rule_step"] = 1
+                st.session_state.selected_job = None
+                st.session_state.editing_dims = None
+                st.rerun()
+        with _nr:
+            if st.button("下一步 →", key="rule_next_2",
+                         disabled=(total != 100), use_container_width=True, type="primary"):
+                st.session_state["rule_step"] = 3
+                st.rerun()
 
-        # 色块条
-        _bars_html = "".join(
-            f'<div style="flex:{w};background:{_bar_colors[i % len(_bar_colors)]};height:10px;'
-            f'{"border-radius:6px 0 0 6px;" if i == 0 else ""}'
-            f'{"border-radius:0 6px 6px 0;" if i == len(edit_dims)-1 else ""}"></div>'
-            for i, (d, w) in enumerate(zip(edit_dims, _cur_weights))
+    # ── Step 3: 确认锁定 ─────────────────────────────────────────────────────
+    elif rule_step == 3:
+        preset   = JOB_PRESETS[jk]
+        new_dims = st.session_state.editing_dims
+        if not new_dims:
+            st.session_state["rule_step"] = 2
+            st.rerun()
+            return
+
+        _emoji_map = {"pm": "🎯", "dev": "⚙️"}
+        _dim_rows = "".join(
+            f'<div style="display:flex;align-items:center;justify-content:space-between;'
+            f'padding:10px 0;border-bottom:1px solid #f3f4f6;">'
+            f'<div style="display:flex;align-items:center;gap:8px;">'
+            f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
+            f'background:{_bar_colors[i % len(_bar_colors)]};display:inline-block;"></span>'
+            f'<span style="font-size:14px;color:#374151;">{d["label"]}</span></div>'
+            f'<span style="font-size:14px;font-weight:700;color:#6366f1;">{d["weight"]}%</span>'
+            f'</div>'
+            for i, d in enumerate(new_dims)
         )
-        st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_bars_html}</div>')
+        st.html(f"""
+<div style="border:1px solid #e5e7eb;border-radius:14px;padding:20px 24px;background:#fafafa;margin-bottom:16px;">
+  <p style="font-size:11px;color:#9ca3af;font-weight:600;margin:0 0 4px;
+            text-transform:uppercase;letter-spacing:.06em;">即将锁定</p>
+  <p style="font-size:18px;font-weight:800;color:#111827;margin:0 0 16px;">
+    {_emoji_map.get(jk,'')} {preset['label']}
+  </p>
+  {_dim_rows}
+</div>""")
 
-        # 数字输入框：与色块对应，每维度一列
-        inp_cols = st.columns(len(edit_dims))
-        for i, (col, d) in enumerate(zip(inp_cols, edit_dims)):
-            with col:
-                st.html(
-                    f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
-                    f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
-                    f'background:{_bar_colors[i % len(_bar_colors)]};display:inline-block;"></span>'
-                    f'<span style="font-size:12px;font-weight:600;color:#374151;'
-                    f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span>'
-                    f'</div>'
-                )
-                w = st.number_input(
-                    d["label"], min_value=5, max_value=60, step=5,
-                    value=st.session_state.get(f"w_{d['id']}", d["weight"]),
-                    key=f"w_{d['id']}", label_visibility="collapsed",
-                )
-                new_dims.append({**d, "weight": w})
-                total += w
-        st.session_state.editing_dims = new_dims
+        st.html('<p style="font-size:13px;color:#9ca3af;margin:0 0 12px;">锁定后规则 '
+                '<strong style="color:#374151;">不可修改</strong>，系统将生成规则指纹并同步公示页。</p>')
 
-        if total == 100:
-            st.markdown(f'<span style="background:#dcfce7;color:#166534;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 {total}%</span>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">⚠ 总计 {total}%，需调整至 100%</span>', unsafe_allow_html=True)
-
-    # 锁定按钮
-    st.markdown('<br/>', unsafe_allow_html=True)
-    st.markdown('<p style="font-size:13px;color:#6b7280;">点击「锁定规则并发布」后规则 <strong>不可修改</strong>，系统将生成规则指纹并同步公示页。</p>', unsafe_allow_html=True)
-
-    if st.button("🔒 锁定规则并发布", type="primary", disabled=(total != 100), key="lock_btn"):
-        fp  = rule_fingerprint(new_dims)
-        at  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        rid = save_rule(jk, preset["label"], new_dims, fp, at)
-        st.session_state.locked_jobs[jk] = {
-            "dims":        new_dims,
-            "fingerprint": fp,
-            "locked_at":   at,
-            "rule_id":     rid,
-            "label":       preset["label"],
-        }
-        st.session_state.active_job   = jk
-        st.session_state.selected_job = None
-        st.session_state.editing_dims = None
-        st.rerun()
+        _nl, _nr = st.columns(2)
+        with _nl:
+            if st.button("← 上一步", key="rule_back_2", use_container_width=True):
+                st.session_state["rule_step"] = 2
+                st.rerun()
+        with _nr:
+            if st.button("🔒 锁定规则并发布", key="lock_btn",
+                         use_container_width=True, type="primary"):
+                fp  = rule_fingerprint(new_dims)
+                at  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                rid = save_rule(jk, preset["label"], new_dims, fp, at)
+                st.session_state.locked_jobs[jk] = {
+                    "dims":        new_dims,
+                    "fingerprint": fp,
+                    "locked_at":   at,
+                    "rule_id":     rid,
+                    "label":       preset["label"],
+                }
+                st.session_state.active_job   = jk
+                st.session_state.selected_job = None
+                st.session_state.editing_dims = None
+                st.session_state["rule_step"] = 1
+                st.rerun()
 
 
 # ─── Page 2：筛选工作台 ───────────────────────────────────────────────────────
@@ -2172,6 +2186,34 @@ def render_candidate_view():
 
 
 # ─── Page 5：候选人规则验证 ──────────────────────────────────────────────────
+def _rule_step_bar(step: int):
+    """规则构建三步进度条，step=1/2/3。"""
+    steps = ["① 选择岗位", "② 配置权重", "③ 锁定发布"]
+    parts = []
+    for i, label in enumerate(steps, 1):
+        if i < step:
+            dot_bg, dot_tc, txt_c = "#6366f1", "white", "#6366f1"
+            connector = '<div style="flex:1;height:2px;background:#6366f1;margin:0 6px;align-self:center;"></div>'
+        elif i == step:
+            dot_bg, dot_tc, txt_c = "#6366f1", "white", "#111827"
+            connector = '<div style="flex:1;height:2px;background:#e5e7eb;margin:0 6px;align-self:center;"></div>'
+        else:
+            dot_bg, dot_tc, txt_c = "#e5e7eb", "#9ca3af", "#9ca3af"
+            connector = '<div style="flex:1;height:2px;background:#e5e7eb;margin:0 6px;align-self:center;"></div>'
+        parts.append(
+            f'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+            f'<div style="width:28px;height:28px;border-radius:50%;background:{dot_bg};'
+            f'color:{dot_tc};font-size:13px;font-weight:700;display:flex;align-items:center;'
+            f'justify-content:center;">{i}</div>'
+            f'<span style="font-size:11px;color:{txt_c};font-weight:{"600" if i==step else "400"};'
+            f'white-space:nowrap;">{label}</span>'
+            f'</div>'
+        )
+        if i < 3:
+            parts.append(connector)
+    st.html(f'<div style="display:flex;align-items:flex-start;margin-bottom:24px;padding:0 8px;">{"".join(parts)}</div>')
+
+
 def _verify_step_bar(step: int):
     """顶部三步进度条，step=1/2/3。"""
     steps = ["① 提取维度", "② 调整权重", "③ 验证指纹"]

@@ -405,7 +405,7 @@ if not st.session_state._db_restored:
                 "fingerprint": _r["fingerprint"],
                 "locked_at":   _r["created_at"],
                 "rule_id":     _r["id"],
-                "label":       _r["label"],
+                "label":       _r["job_label"],
             }
         # 恢复该规则对应的筛选结果
         _saved = get_screening_results(_r["id"])

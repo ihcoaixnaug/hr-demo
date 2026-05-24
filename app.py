@@ -650,38 +650,36 @@ def render_rule_builder():
             at_l = js["locked_at"]
             dims_l = js["dims"]
             dim_chips = "".join(
-                f'<span style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);'
-                f'border-radius:8px;padding:3px 10px;font-size:12px;color:#e5e7eb;'
+                f'<span style="background:#f0fdf4;border:1px solid #a7f3d0;'
+                f'border-radius:8px;padding:3px 10px;font-size:12px;color:#065f46;'
                 f'font-weight:500;margin-right:6px;margin-bottom:6px;display:inline-block;">'
-                f'{d["label"]} <span style="color:#6ee7b7;font-weight:700;">{d["weight"]}%</span></span>'
+                f'{d["label"]} <span style="color:#059669;font-weight:700;">{d["weight"]}%</span></span>'
                 for d in dims_l
             )
-            st.markdown(f"""
-<div style="background:linear-gradient(160deg,#1C1B18 0%,#2D2825 100%);
-            border-radius:24px;padding:24px 26px;color:#FFFFFF;margin-bottom:0;
-            box-shadow:6px 6px 20px rgba(30,41,59,.18),-2px -2px 8px rgba(255,255,255,.06);">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-    <span style="font-size:16px;">🔒</span>
-    <span style="font-size:15px;font-weight:700;letter-spacing:-.01em;">{jl_l} · 规则已锁定 · 不可修改</span>
+            st.html(f"""
+<div style="border:1.5px solid #a7f3d0;background:#f0fdf4;border-radius:16px;
+            padding:18px 22px;margin-bottom:0;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">🔒</span>
+      <span style="font-size:15px;font-weight:700;color:#111827;">{jl_l}</span>
+      <span style="background:#dcfce7;color:#166534;border-radius:999px;
+                   padding:2px 10px;font-size:12px;font-weight:600;">规则已锁定 · 不可修改</span>
+    </div>
+    <span style="font-size:12px;color:#6b7280;">锁定于 {at_l}</span>
   </div>
-  <p style="font-size:12px;color:#C8C4BE;margin:0 0 18px;">锁定时间：{at_l}</p>
-  <div style="background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.2);
-              border-radius:12px;padding:16px 18px;margin-bottom:16px;">
-    <p style="font-size:11px;color:#C8C4BE;margin:0 0 8px;text-transform:uppercase;
-               letter-spacing:.06em;font-weight:600;">RULE HASH · 规则指纹</p>
-    <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:26px;
-                 color:#6ee7b7;font-weight:900;letter-spacing:.2em;">{fp_l}</span>
-    <p style="font-size:11.5px;color:#C8C4BE;margin:8px 0 0;line-height:1.5;">
-      规则内容改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
+  <div style="background:white;border:1px solid #d1fae5;border-radius:10px;
+              padding:12px 16px;margin-bottom:12px;">
+    <p style="font-size:10px;color:#6b7280;font-weight:600;margin:0 0 4px;
+              text-transform:uppercase;letter-spacing:.07em;">规则指纹 Rule Hash</p>
+    <span style="font-family:'SF Mono',ui-monospace,monospace;font-size:22px;
+                 color:#059669;font-weight:900;letter-spacing:.18em;">{fp_l}</span>
+    <p style="font-size:12px;color:#6b7280;margin:6px 0 0;line-height:1.5;">
+      规则改变则指纹随之改变 · 候选人可使用相同 JD 独立验证
     </p>
   </div>
-  <div style="font-size:12px;color:#C8C4BE;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-    <span>🔗</span>
-    <span>规则已同步公示页，候选人收到的投递确认邮件含本指纹</span>
-  </div>
   <div style="display:flex;flex-wrap:wrap;">{dim_chips}</div>
-</div>
-""", unsafe_allow_html=True)
+</div>""")
 
             st.markdown('<div style="margin-top:-10px;"></div>', unsafe_allow_html=True)
             _ca, _cb, _cc = st.columns([1, 1, 1], vertical_alignment="center")
@@ -1014,11 +1012,12 @@ def render_screening():
                         st.session_state[f"chk_{cid}"] = True
                 st.rerun()
 
-        cols2 = st.columns(2)
+        _n_cols = min(4, len(job_c))
+        cols4 = st.columns(_n_cols)
         for i, c in enumerate(job_c):
-            with cols2[i % 2]:
+            with cols4[i % _n_cols]:
                 chk = st.checkbox(
-                    f"{c['name']} · {c['school']} · {c.get('degree','本科')} · {c['tag']}",
+                    f"**{c['name']}**  \n{c['school']} · {c.get('degree','本科')} · {c['tag']}",
                     value=c["id"] in st.session_state.selected_cands,
                     key=f"chk_{c['id']}",
                 )
@@ -1910,15 +1909,34 @@ def render_candidate_view():
             bg_ = "#fffbeb"; tc_ = "#92400e"; tag_ = "📋 基本符合"
         else:
             bg_ = "#fef2f2"; tc_ = "#991b1b"; tag_ = "⚠ 有待提升"
+
+        # 改进提示：对未达标维度显示 AI 评分依据的第一句（候选人可见）
+        _hint_html = ""
+        if s < 65:
+            _raw = reasons.get(d["id"], "")
+            if _raw:
+                _first = _raw.split("。")[0]
+                _hint_txt = (_first + "。") if len(_first) < len(_raw) else _first
+                if len(_hint_txt) > 90:
+                    _hint_txt = _hint_txt[:90] + "…"
+                _hint_bg  = "#fef9ec" if s >= 50 else "#fff5f5"
+                _hint_tc  = "#92400e" if s >= 50 else "#991b1b"
+                _hint_html = (f'<div style="font-size:12px;color:{_hint_tc};'
+                              f'background:{_hint_bg};border-radius:6px;'
+                              f'padding:7px 10px;margin-top:7px;line-height:1.6;">'
+                              f'💡 {_hint_txt}</div>')
+
         dim_rows += f"""
-<div style="display:flex;align-items:center;justify-content:space-between;
-            padding:12px 0;border-bottom:1px solid #f3f4f6;">
-  <div>
-    <span style="font-size:14px;font-weight:500;color:#111827;">{d["label"]}</span>
-    <span style="font-size:12px;color:#9ca3af;margin-left:8px;">权重 {d["weight"]}%</span>
+<div style="padding:12px 0;border-bottom:1px solid #f3f4f6;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <span style="font-size:14px;font-weight:500;color:#111827;">{d["label"]}</span>
+      <span style="font-size:12px;color:#9ca3af;margin-left:8px;">权重 {d["weight"]}%</span>
+    </div>
+    <span style="background:{bg_};color:{tc_};border-radius:999px;
+                 padding:3px 12px;font-size:12px;font-weight:600;">{tag_}</span>
   </div>
-  <span style="background:{bg_};color:{tc_};border-radius:999px;
-               padding:3px 12px;font-size:12px;font-weight:600;">{tag_}</span>
+  {_hint_html}
 </div>"""
 
     # 结果大图标 + 文字配置（使用候选人友好文案）

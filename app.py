@@ -1094,8 +1094,33 @@ def render_screening():
 </div>""")
         return
 
+    # ── 分层阈值设定（默认：<60 不推进 / 60-75 待定 / ≥75 强推）────────────────
+    _th_key = f"th_slider_{jk}"
+    _th_default = (60, 75)
+    _th_vals = st.session_state.get(_th_key, _th_default)
+
+    # 预计算每位候选人的加权总分（已有结果才算）
+    _score_map = {
+        c["id"]: weighted_score(results[c["id"]]["scores"], dims)
+        for c in job_c if c["id"] in results
+    }
+
+    def _th_final(cid: str) -> tuple:
+        """根据阈值对候选人分层，HR 覆盖优先。"""
+        ov_data = st.session_state.overrides.get(cid, {})
+        has_ov = bool(ov_data.get("result"))
+        if has_ov:
+            return ov_data["result"], True
+        sc = _score_map.get(cid, 0)
+        th_pend, th_pass = st.session_state.get(_th_key, _th_default)
+        if sc >= th_pass:
+            return "强推进面试", False
+        if sc >= th_pend:
+            return "待定", False
+        return "不推进", False
+
     # ── 汇总栏（只统计当前岗位的候选人，不跨岗累积）────────────────────────
-    all_finals = [_get_final(c["id"], results[c["id"]]["ai_result"])[0]
+    all_finals = [_th_final(c["id"])[0]
                   for c in job_c if c["id"] in results]
     n = len(all_finals)
     s_n = sum(1 for r in all_finals if r == "强推进面试")
@@ -1202,6 +1227,45 @@ def render_screening():
 
 </div>""")
 
+    # ── 分层阈值调整滑块 ─────────────────────────────────────────────────────
+    with st.expander("⚙️ 调整分层阈值", expanded=False):
+        _new_th = st.slider(
+            "分层阈值区间",
+            min_value=0, max_value=100,
+            value=st.session_state.get(_th_key, _th_default),
+            step=5,
+            key=_th_key,
+            help="左滑块：不推进 / 待定 分界线　右滑块：待定 / 强推进面试 分界线",
+        )
+        # 实时预览分布
+        _th_lo, _th_hi = _new_th
+        _prev_s = sum(1 for c in job_c if c["id"] in results and _score_map.get(c["id"], 0) >= _th_hi)
+        _prev_p = sum(1 for c in job_c if c["id"] in results and _th_lo <= _score_map.get(c["id"], 0) < _th_hi)
+        _prev_r = sum(1 for c in job_c if c["id"] in results and _score_map.get(c["id"], 0) < _th_lo)
+        _prev_n = len([c for c in job_c if c["id"] in results])
+        # 色块比例条
+        _ps_pct = round(_prev_s / _prev_n * 100) if _prev_n else 0
+        _pp_pct = round(_prev_p / _prev_n * 100) if _prev_n else 0
+        st.html(f"""
+<div style="margin-top:4px;">
+  <div style="display:flex;border-radius:8px;overflow:hidden;height:18px;margin-bottom:10px;">
+    <div style="width:{_ps_pct}%;background:#4ADE80;min-width:{2 if _prev_s else 0}px;
+                transition:width .3s;"></div>
+    <div style="width:{_pp_pct}%;background:#F59E0B;min-width:{2 if _prev_p else 0}px;
+                transition:width .3s;"></div>
+    <div style="flex:1;background:#F87171;min-width:{2 if _prev_r else 0}px;
+                transition:width .3s;"></div>
+  </div>
+  <div style="display:flex;gap:20px;font-size:12px;color:#475569;">
+    <span>🟢 强推进&nbsp;<strong style="color:#166534;">{_prev_s}</strong>&nbsp;人
+          &nbsp;<span style="color:#94A9BC;">(≥{_th_hi}分)</span></span>
+    <span>🟡 待定&nbsp;<strong style="color:#92400e;">{_prev_p}</strong>&nbsp;人
+          &nbsp;<span style="color:#94A9BC;">({_th_lo}–{_th_hi-1}分)</span></span>
+    <span>🔴 不推进&nbsp;<strong style="color:#991b1b;">{_prev_r}</strong>&nbsp;人
+          &nbsp;<span style="color:#94A9BC;">(&lt;{_th_lo}分)</span></span>
+  </div>
+</div>""")
+
     # ── 漏斗预估：基于当前强推率推算全量 12000 份简历的到面人数 ─────────────────
     if n > 0:
         # 计划招聘人数（可调节）
@@ -1265,8 +1329,7 @@ def render_screening():
         _top_ne_cand, _top_ne_score = _non_elite_top[0]
         _beaten_count = sum(1 for s in _elite_scores if _top_ne_score > s)
         if _beaten_count > 0:
-            _final_ne, _ = _get_final(_top_ne_cand["id"],
-                                       results[_top_ne_cand["id"]]["ai_result"])
+            _final_ne, _ = _th_final(_top_ne_cand["id"])
             if _final_ne == "强推进面试":
                 st.html(f"""
 <div style="background:linear-gradient(135deg,#1A1714 0%,#2D2825 100%);
@@ -1312,7 +1375,7 @@ def render_screening():
                      + [f"{d['label']}理由" for d in dims])
         for _c in job_c_sorted:
             _r = results[_c["id"]]
-            _fin, _ov = _get_final(_c["id"], _r["ai_result"])
+            _fin, _ov = _th_final(_c["id"])
             _ov_note = st.session_state.overrides.get(_c["id"], {}).get("note", "")
             _bw.writerow(
                 [_c["name"], _c["school"], _c["tag"], js["label"],
@@ -1338,7 +1401,7 @@ def render_screening():
             continue
 
         r          = results[cid]
-        final, ov  = _get_final(cid, r["ai_result"])
+        final, ov  = _th_final(cid)
         color      = result_color(final)
         cm         = COLOR_MAP[color]
         score      = weighted_score(r["scores"], dims)

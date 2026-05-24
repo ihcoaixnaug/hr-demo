@@ -746,30 +746,36 @@ def render_rule_builder():
         st.rerun()
 
     c1, c2 = st.columns(2)
-    with c1:
-        pm = JOB_PRESETS["pm"]
-        pm_sel = st.session_state.selected_job == "pm"
-        pm_done = "pm" in locked_jobs
-        if st.button(
-            f"🎯  {pm['label']}" + (" ✓ 已锁定" if pm_done else "") + f"\n{pm['desc']}",
-            key="sel_pm",
-            use_container_width=True,
-            type="primary" if pm_sel else "secondary",
-            disabled=pm_done,
-        ):
-            _load_job("pm")
-    with c2:
-        dev = JOB_PRESETS["dev"]
-        dev_sel = st.session_state.selected_job == "dev"
-        dev_done = "dev" in locked_jobs
-        if st.button(
-            f"⚙️  {dev['label']}" + (" ✓ 已锁定" if dev_done else "") + f"\n{dev['desc']}",
-            key="sel_dev",
-            use_container_width=True,
-            type="primary" if dev_sel else "secondary",
-            disabled=dev_done,
-        ):
-            _load_job("dev")
+    for col, jk_opt, emoji, btn_key in [
+        (c1, "pm",  "🎯", "sel_pm"),
+        (c2, "dev", "⚙️", "sel_dev"),
+    ]:
+        p       = JOB_PRESETS[jk_opt]
+        is_sel  = st.session_state.selected_job == jk_opt
+        is_done = jk_opt in locked_jobs
+        _border = "#6366f1" if is_sel else ("#10b981" if is_done else "#e5e7eb")
+        _bg     = "#f5f3ff" if is_sel else ("#f0fdf4" if is_done else "#ffffff")
+        _badge  = (f'<span style="background:#dcfce7;color:#166534;border-radius:999px;'
+                   f'padding:2px 8px;font-size:11px;font-weight:600;">✓ 已锁定</span>'
+                   if is_done else "")
+        with col:
+            st.html(f"""
+<div style="border:2px solid {_border};border-radius:14px;background:{_bg};
+            padding:18px 20px 10px;margin-bottom:-8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <span style="font-size:17px;font-weight:800;color:#111827;">{emoji} {p['label']}</span>
+    {_badge}
+  </div>
+  <p style="font-size:13px;color:#6b7280;margin:0;">{p['desc']}</p>
+</div>""")
+            if st.button(
+                "已锁定" if is_done else ("▶ 当前选中" if is_sel else "选择此岗位 →"),
+                key=btn_key,
+                use_container_width=True,
+                type="primary" if is_sel else "secondary",
+                disabled=is_done,
+            ):
+                _load_job(jk_opt)
 
     jk = st.session_state.selected_job
     if not jk:

@@ -2283,18 +2283,36 @@ def render_verification():
 </div>""")
 
     with st.container(border=True):
-        st.markdown('<span style="font-size:13px;font-weight:600;color:#374151;">权重设置</span>',
-                    unsafe_allow_html=True)
+        _vbar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
+        _vcur_weights = [st.session_state.get(f"vw_{d['id']}", d["weight"]) for d in verify_dims]
+        _vbars_html = "".join(
+            f'<div style="flex:{w};background:{_vbar_colors[i % len(_vbar_colors)]};height:10px;'
+            f'{"border-radius:6px 0 0 6px;" if i == 0 else ""}'
+            f'{"border-radius:0 6px 6px 0;" if i == len(verify_dims)-1 else ""}"></div>'
+            for i, (d, w) in enumerate(zip(verify_dims, _vcur_weights))
+        )
+        st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_vbars_html}</div>')
+
         new_dims = []
         total = 0
-        for d in verify_dims:
-            w = st.slider(
-                d["label"], min_value=5, max_value=60,
-                value=st.session_state.get(f"vw_{d['id']}", d["weight"]),
-                step=5, key=f"vw_{d['id']}", format="%d%%",
-            )
-            new_dims.append({**d, "weight": w})
-            total += w
+        _vinp_cols = st.columns(len(verify_dims))
+        for i, (col, d) in enumerate(zip(_vinp_cols, verify_dims)):
+            with col:
+                st.html(
+                    f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+                    f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
+                    f'background:{_vbar_colors[i % len(_vbar_colors)]};display:inline-block;"></span>'
+                    f'<span style="font-size:12px;font-weight:600;color:#374151;'
+                    f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span>'
+                    f'</div>'
+                )
+                w = st.number_input(
+                    d["label"], min_value=5, max_value=60, step=5,
+                    value=st.session_state.get(f"vw_{d['id']}", d["weight"]),
+                    key=f"vw_{d['id']}", label_visibility="collapsed",
+                )
+                new_dims.append({**d, "weight": w})
+                total += w
 
         if total == 100:
             st.html('<span style="background:#dcfce7;color:#166534;border-radius:999px;'

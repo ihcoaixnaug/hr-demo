@@ -108,6 +108,7 @@ def extract_dims_from_jd(jd: str, job_label: str = "") -> tuple:
             "model": _model(),
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
+            "response_format": {"type": "json_object"},
         }, timeout=45)
     except requests.exceptions.Timeout:
         return None, "请求超时（>45s），请稍后重试"

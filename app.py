@@ -833,6 +833,28 @@ def render_rule_builder():
             total += w
         st.session_state.editing_dims = new_dims
 
+        # 权重分布可视化
+        _bar_colors = ["#6366f1","#06b6d4","#10b981","#f59e0b","#f43f5e","#8b5cf6","#0ea5e9"]
+        _bars_html = "".join(
+            f'<div title="{d["label"]} {d["weight"]}%" style="flex:{d["weight"]};'
+            f'background:{_bar_colors[i % len(_bar_colors)]};height:8px;'
+            f'{"border-radius:6px 0 0 6px;" if i==0 else ""}'
+            f'{"border-radius:0 6px 6px 0;" if i==len(new_dims)-1 else ""}"></div>'
+            for i, d in enumerate(new_dims)
+        )
+        _labels_html = "".join(
+            f'<span style="flex:{d["weight"]};font-size:10px;color:#6b7280;'
+            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+            f'text-align:center;">{d["label"]}<br/>'
+            f'<strong style="color:#374151;">{d["weight"]}%</strong></span>'
+            for d in new_dims
+        )
+        st.html(f"""
+<div style="margin:10px 0 6px;">
+  <div style="display:flex;border-radius:6px;overflow:hidden;gap:2px;">{_bars_html}</div>
+  <div style="display:flex;margin-top:4px;gap:2px;">{_labels_html}</div>
+</div>""")
+
         if total == 100:
             st.markdown(f'<span style="background:#dcfce7;color:#166534;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 {total}%</span>', unsafe_allow_html=True)
         else:
@@ -1226,6 +1248,37 @@ def render_screening():
         reverse=True,
     )
 
+    # ── 批量导出 ─────────────────────────────────────────────────────────────
+    if job_c_sorted:
+        import csv, io as _io
+        _bulk_buf = _io.StringIO()
+        _bw = csv.writer(_bulk_buf)
+        _bw.writerow(["候选人", "院校", "标签", "岗位", "AI建议", "最终结果",
+                      "HR覆盖", "加权总分", "规则指纹"]
+                     + [f"{d['label']}得分" for d in dims]
+                     + [f"{d['label']}理由" for d in dims])
+        for _c in job_c_sorted:
+            _r = results[_c["id"]]
+            _fin, _ov = _get_final(_c["id"], _r["ai_result"])
+            _ov_note = st.session_state.overrides.get(_c["id"], {}).get("note", "")
+            _bw.writerow(
+                [_c["name"], _c["school"], _c["tag"], js["label"],
+                 _r["ai_result"], _fin, _ov_note,
+                 weighted_score(_r["scores"], dims), js["fingerprint"]]
+                + [_r["scores"].get(d["id"], "") for d in dims]
+                + [_r["reasons"].get(d["id"], "") for d in dims]
+            )
+        _dl_col, _ = st.columns([2, 8])
+        with _dl_col:
+            st.download_button(
+                "⬇ 导出全部评分卡",
+                data=_bulk_buf.getvalue().encode("utf-8-sig"),
+                file_name=f"评分卡_全部_{js['label']}.csv",
+                mime="text/csv",
+                key="dl_bulk",
+                use_container_width=True,
+            )
+
     for cand in job_c_sorted:
         cid = cand["id"]
         if cid not in results:
@@ -1295,7 +1348,7 @@ def render_screening():
         # ── 操作行 ────────────────────────────────────────────────────────────
         exp_key = f"exp_{cid}"
         is_expanded = st.session_state.get(exp_key, False)
-        btn_cols = st.columns([1, 1, 2])  # 展开理由 + 原始简历 + 空白
+        btn_cols = st.columns([1, 1, 1, 1])  # 展开理由 + 原始简历 + 导出评分卡 + 空白
 
         with btn_cols[0]:
             exp_txt = "▲ 收起理由" if is_expanded else "▼ 展开理由"
@@ -1305,6 +1358,39 @@ def render_screening():
         with btn_cols[1]:
             if st.button("📄 原始简历", key=f"btn_res_{cid}", use_container_width=True):
                 _resume_dialog(cand)
+        with btn_cols[2]:
+            import csv, io
+            _csv_buf = io.StringIO()
+            _w = csv.writer(_csv_buf)
+            _w.writerow(["字段", "值"])
+            _w.writerow(["候选人", cand["name"]])
+            _w.writerow(["院校", cand["school"]])
+            _w.writerow(["标签", cand["tag"]])
+            _w.writerow(["岗位", js["label"]])
+            _w.writerow(["规则指纹", js["fingerprint"]])
+            _w.writerow(["规则锁定时间", js.get("locked_at", "")])
+            _w.writerow(["AI 建议", r["ai_result"]])
+            _w.writerow(["最终结果", final])
+            if ov:
+                _w.writerow(["HR 覆盖原因", ov_data.get("note", "")])
+            _w.writerow(["加权总分", score])
+            _w.writerow([])
+            _w.writerow(["维度", "权重(%)", "得分", "AI 评分理由"])
+            for _d in dims:
+                _w.writerow([
+                    _d["label"],
+                    _d["weight"],
+                    r["scores"].get(_d["id"], ""),
+                    r["reasons"].get(_d["id"], ""),
+                ])
+            st.download_button(
+                "⬇ 导出评分卡",
+                data=_csv_buf.getvalue().encode("utf-8-sig"),
+                file_name=f"评分卡_{cand['name']}_{js['label']}.csv",
+                mime="text/csv",
+                key=f"dl_card_{cid}",
+                use_container_width=True,
+            )
         if is_expanded:
             reasons_html = "".join(
                 f"""<div style="padding:12px 0;border-bottom:1px solid #EEF2F8;">
@@ -1604,6 +1690,29 @@ def render_screening():
   </div>
   <div style="color:#4b5563;line-height:1.6;">
     <strong style="color:#374151;">覆盖原因：</strong>{row["override_note"]}
+  </div>
+</div>""")
+
+        # ── 申诉处理记录 ─────────────────────────────────────────────────────
+        reviewed_appeals = [a for a in all_appeals if a.get("status") != "pending"]
+        if reviewed_appeals:
+            st.html("""
+<div style="font-size:12px;font-weight:700;color:#374151;margin:18px 0 8px;
+            padding-top:14px;border-top:1px solid #e5e7eb;">
+  📬 申诉处理记录
+</div>""")
+            _s_label = {"reviewed": ("✅ 已采纳", "#f0fdf4", "#166534"),
+                        "dismissed": ("🚫 已驳回", "#fef2f2", "#991b1b")}
+            for ap in reviewed_appeals:
+                _sl, _sbg, _stc = _s_label.get(ap["status"], ("—", "#f9fafb", "#374151"))
+                st.html(f"""
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;
+            padding:12px 16px;margin-bottom:6px;font-size:12px;">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span style="font-weight:700;color:#111827;">{ap["candidate_name"]}</span>
+    <span style="background:{_sbg};color:{_stc};border-radius:999px;
+                 padding:1px 8px;font-size:11px;font-weight:600;">{_sl}</span>
+    <span style="color:#c4c9d4;margin-left:auto;font-size:11px;">{ap.get("submitted_at","")[:16]}</span>
   </div>
 </div>""")
 

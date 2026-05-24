@@ -12,7 +12,6 @@ from database import (
     init_db, save_rule, get_all_rules,
     save_screening_result, get_screening_results,
     save_hr_override, get_hr_overrides,
-    add_to_pool_db, remove_from_pool_db, get_pool_db, mark_pool_contacted,
     save_appeal, get_all_appeals, update_appeal_status,
 )
 from llm import screen_candidate_with_llm, extract_dims_from_jd, has_api_key
@@ -374,7 +373,6 @@ def _init():
         "overrides":         {},
         "selected_cands":    [],
         # ─ 其他 ──────────────────────────────────────────────────────────────
-        "pool":              [],
         "appeal_submitted":  set(),
         "hiring_target":     120,
         "goto_tab":          -1,
@@ -414,9 +412,6 @@ if not st.session_state._db_restored:
         st.session_state.active_job = list(st.session_state.locked_jobs.keys())[0]
     st.session_state._db_restored = True
 
-def _sync_pool():
-    st.session_state.pool = get_pool_db()
-_sync_pool()
 
 
 # ─── HTML 辅助函数 ────────────────────────────────────────────────────────────
@@ -613,12 +608,6 @@ def render_header():
             f'<span style="background:#111827;color:#fff;border-radius:999px;'
             f'padding:3px 10px;font-size:12px;margin-left:8px;">'
             f'🔒 {_js["label"]}</span>'
-        )
-    pn = len(st.session_state.pool)
-    if pn:
-        badges_html += (
-            f'<span style="background:#f59e0b;color:#fff;border-radius:999px;'
-            f'padding:3px 10px;font-size:12px;margin-left:6px;">📦 备选池 {pn}</span>'
         )
     if not has_api_key():
         badges_html += (
@@ -1231,7 +1220,6 @@ def render_screening():
 </div>""")
 
     # ── 候选人结果卡片（按综合得分从高到低排列）─────────────────────────────
-    pool_ids = [p["candidate_id"] for p in st.session_state.pool]
     job_c_sorted = sorted(
         [c for c in job_c if c["id"] in results],
         key=lambda c: weighted_score(results[c["id"]]["scores"], dims),
@@ -1307,13 +1295,7 @@ def render_screening():
         # ── 操作行 ────────────────────────────────────────────────────────────
         exp_key = f"exp_{cid}"
         is_expanded = st.session_state.get(exp_key, False)
-        in_pool = cid in pool_ids
-        show_pool_btn = (final == "不推进")
-
-        if show_pool_btn:
-            btn_cols = st.columns(3)          # 三个等宽按钮
-        else:
-            btn_cols = st.columns([1, 1, 2])  # 两个按钮 + 空白
+        btn_cols = st.columns([1, 1, 2])  # 展开理由 + 原始简历 + 空白
 
         with btn_cols[0]:
             exp_txt = "▲ 收起理由" if is_expanded else "▼ 展开理由"
@@ -1323,18 +1305,6 @@ def render_screening():
         with btn_cols[1]:
             if st.button("📄 原始简历", key=f"btn_res_{cid}", use_container_width=True):
                 _resume_dialog(cand)
-        if show_pool_btn:
-            with btn_cols[2]:
-                if not in_pool:
-                    if st.button("＋ 跨岗备选", key=f"btn_pool_{cid}", use_container_width=True,
-                                 help="加入跨岗位备选库，供其他岗位 HR 参考复用"):
-                        add_to_pool_db(cid, preset["label"])
-                        _sync_pool()
-                        st.rerun()
-                else:
-                    st.markdown('<div style="padding:7px 0;font-size:12px;color:#d97706;font-weight:500;">✓ 已入跨岗库</div>', unsafe_allow_html=True)
-
-        # ── 展开：理由 + HR 覆盖 ──────────────────────────────────────────────
         if is_expanded:
             reasons_html = "".join(
                 f"""<div style="padding:12px 0;border-bottom:1px solid #EEF2F8;">
@@ -2052,91 +2022,6 @@ def render_candidate_view():
 
 
 
-# ─── Page 4：简历备选池 ───────────────────────────────────────────────────────
-def render_pool_view():
-    pool = st.session_state.pool
-
-    st.html(f"""
-<div style="margin-bottom:16px;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-    <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">简历备选池</h2>
-    {_role_badge("HR 视角")}
-  </div>
-  <p style="font-size:14px;color:#6b7280;margin:0;">跨岗位备选简历，供其他 HR 参考复用</p>
-</div>""")
-
-    if not pool:
-        st.markdown("""
-<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:48px;text-align:center;color:#9ca3af;font-size:14px;">
-  📭 备选池暂无简历<br/>
-  <span style="font-size:13px;">在筛选工作台对「不推进」候选人点击「➕ 加入备选池」即可加入</span>
-</div>""", unsafe_allow_html=True)
-        return
-
-    st.markdown(f"""
-<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;
-            padding:12px 16px;font-size:13px;color:#92400e;line-height:1.6;margin-bottom:16px;">
-  💡 这些候选人虽未通过本岗位筛选，但可能匹配其他部门需求。
-  各岗位 HR 可在此浏览并联系感兴趣的候选人。
-</div>
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-  <span style="font-size:16px;font-weight:700;color:#111827;">共 {len(pool)} 份备选简历</span>
-</div>""", unsafe_allow_html=True)
-
-    for entry in pool:
-        cid   = entry["candidate_id"]
-        cand  = CANDIDATES_MAP.get(cid)
-        if not cand:
-            continue
-        jl    = entry["from_job_label"]
-
-        contacted = bool(entry.get("contacted", 0))
-        contact_bg     = "#f0fdf4" if contacted else "white"
-        contact_border = "#86efac" if contacted else "#e5e7eb"
-        contact_badge  = (
-            '<span style="background:#dcfce7;color:#166534;border-radius:999px;'
-            'padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;">✅ 已联系</span>'
-            if contacted else ""
-        )
-        st.html(f"""
-<div style="background:{contact_bg};border:1px solid {contact_border};border-radius:12px;
-            padding:16px;margin-bottom:8px;transition:all .2s;">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-        <span style="font-size:15px;font-weight:700;color:#111827;">{cand["name"]}</span>
-        <span style="background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;
-                     border-radius:999px;padding:2px 8px;font-size:12px;">{cand["school"]}</span>
-        {_tag(cand["tag"])}
-        {contact_badge}
-      </div>
-      <p style="font-size:13px;color:#6b7280;line-height:1.5;margin:0 0 8px;">{cand["summary"]}</p>
-      <div style="font-size:12px;color:#9ca3af;">
-        来源岗位：<span style="color:#374151;font-weight:500;">{jl}</span>
-        <span style="color:#ef4444;margin-left:6px;">· 未通过本岗位初筛</span>
-      </div>
-    </div>
-  </div>
-</div>""")
-
-        _a, _b, _ = st.columns([2, 2, 6])
-        with _a:
-            label = "✅ 已联系" if contacted else "📧 标记已联系"
-            if st.button(label, key=f"contact_{cid}", use_container_width=True,
-                         type="primary" if not contacted else "secondary"):
-                mark_pool_contacted(cid, not contacted)
-                _sync_pool()
-                st.rerun()
-        with _b:
-            if st.button("移出备选池", key=f"rm_{cid}", use_container_width=True):
-                remove_from_pool_db(cid)
-                _sync_pool()
-                st.rerun()
-
-        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
-
-
 # ─── Page 5：候选人规则验证 ──────────────────────────────────────────────────
 def render_verification():
     st.html(f"""
@@ -2355,12 +2240,11 @@ _pending_appeals = len([a for a in get_all_appeals()
                         if a.get("status", "pending") == "pending"])
 _appeal_tab_label = f"📊 筛选工作台{' 🔴' if _pending_appeals else ''}"
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "🏗 规则构建",
     _appeal_tab_label,
     "👤 候选人视图",
     "🔍 规则验证",
-    "📦 简历备选池",
 ])
 
 with tab1:
@@ -2371,8 +2255,6 @@ with tab3:
     render_candidate_view()
 with tab4:
     render_verification()
-with tab5:
-    render_pool_view()
 
 # ── 申诉输入框实时字数计数器（JS注入父文档）─────────────────────────────────────
 st.components.v1.html("""

@@ -2353,7 +2353,7 @@ render_header()
 
 _pending_appeals = len([a for a in get_all_appeals()
                         if a.get("status", "pending") == "pending"])
-_appeal_tab_label = f"📊 筛选工作台{'  ' + str(_pending_appeals) if _pending_appeals else ''}"
+_appeal_tab_label = f"📊 筛选工作台{' 🔴' if _pending_appeals else ''}"
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏗 规则构建",

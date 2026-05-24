@@ -9,7 +9,7 @@ import streamlit as st
 from data import JOB_PRESETS, CANDIDATES, CANDIDATES_MAP
 from utils import rule_fingerprint, weighted_score, result_color, build_public_page_html
 from database import (
-    init_db, save_rule,
+    init_db, save_rule, get_all_rules,
     save_screening_result, get_screening_results,
     save_hr_override, get_hr_overrides,
     add_to_pool_db, remove_from_pool_db, get_pool_db, mark_pool_contacted,

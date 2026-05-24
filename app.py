@@ -521,6 +521,27 @@ def _public_page_dialog(dims: list, fp: str, locked_at: str, job_label: str):
         f'</tr></thead><tbody>{rows}</tbody></table>',
         unsafe_allow_html=True,
     )
+    # 锁定时间 + 状态徽章
+    if locked_at:
+        st.markdown(
+            f'<div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">'
+            f'锁定时间：<span style="color:#374151;font-weight:500;">{locked_at}</span>'
+            f'&nbsp;&nbsp;'
+            f'<span style="display:inline-block;background:#f0fdf4;color:#16a34a;'
+            f'border:1px solid #bbf7d0;border-radius:20px;font-size:11px;'
+            f'padding:2px 10px;font-weight:600;">已锁定 · 不可修改</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    # 只读说明
+    st.markdown(
+        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;'
+        'padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:10px;">'
+        '⚠ 本页面为只读公示，规则自锁定后不可更改。'
+        '如对评估结果有异议，请通过候选人系统提交申诉。'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     html = build_public_page_html(dims, fp, locked_at, job_label)
     st.download_button("⬇ 下载完整公示页 HTML", data=html,
                        file_name="rule_public_page.html", mime="text/html")

@@ -987,7 +987,9 @@ def render_screening():
 
     _ring_deg   = round(auto * 3.6)
     _ring_color = "#2563EB" if auto >= 80 else "#F59E0B" if auto >= 60 else "#EF4444"
-    _ring_label = "✓ 目标达成" if auto >= 80 else "目标 ≥ 80%"
+    _ring_label = ("✓ 目标达成" if auto >= 80 and n >= 20
+                   else f"{s_n + rej}/{n} 份已决策" if auto >= 80
+                   else "目标 ≥ 80%")
 
     st.html(f"""
 <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:28px;">
@@ -2216,6 +2218,25 @@ def render_verification():
         return
 
     st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+
+    # ── 一键加载锁定规则权重 ──────────────────────────────────────────────────
+    _off_job = st.session_state.get("offline_job")
+    _locked  = st.session_state.get("locked_jobs", {})
+    if _off_job and _off_job in _locked:
+        _locked_dims = _locked[_off_job]["dims"]
+        _locked_fp   = _locked[_off_job]["fingerprint"]
+        _col_load, _col_info = st.columns([1, 2])
+        with _col_load:
+            if st.button("🔒 一键加载已锁定规则权重", key="load_locked_weights",
+                         use_container_width=True, type="primary"):
+                for _d in _locked_dims:
+                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                st.rerun()
+        with _col_info:
+            st.html(f'<p style="font-size:12px;color:#2563EB;margin:10px 0 0;">'
+                    f'HR 已锁定规则指纹：<code style="font-weight:700;">{_locked_fp}</code>'
+                    f'，加载权重后验证指纹是否一致</p>')
+    st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
     # Step 2：展示维度 & 调整权重
     st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">② 确认维度名称，并调整权重至与 HR 公示的一致</p>')

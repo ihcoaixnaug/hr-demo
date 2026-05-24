@@ -2134,6 +2134,34 @@ def render_candidate_view():
 
 
 # ─── Page 5：候选人规则验证 ──────────────────────────────────────────────────
+def _verify_step_bar(step: int):
+    """顶部三步进度条，step=1/2/3。"""
+    steps = ["① 提取维度", "② 调整权重", "③ 验证指纹"]
+    parts = []
+    for i, label in enumerate(steps, 1):
+        if i < step:
+            dot_bg, dot_tc, txt_c = "#6366f1", "white", "#6366f1"
+            connector = f'<div style="flex:1;height:2px;background:#6366f1;margin:0 6px;align-self:center;"></div>'
+        elif i == step:
+            dot_bg, dot_tc, txt_c = "#6366f1", "white", "#111827"
+            connector = f'<div style="flex:1;height:2px;background:#e5e7eb;margin:0 6px;align-self:center;"></div>'
+        else:
+            dot_bg, dot_tc, txt_c = "#e5e7eb", "#9ca3af", "#9ca3af"
+            connector = f'<div style="flex:1;height:2px;background:#e5e7eb;margin:0 6px;align-self:center;"></div>'
+        parts.append(
+            f'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+            f'<div style="width:28px;height:28px;border-radius:50%;background:{dot_bg};'
+            f'color:{dot_tc};font-size:13px;font-weight:700;display:flex;align-items:center;'
+            f'justify-content:center;">{i}</div>'
+            f'<span style="font-size:11px;color:{txt_c};font-weight:{"600" if i==step else "400"};'
+            f'white-space:nowrap;">{label}</span>'
+            f'</div>'
+        )
+        if i < 3:
+            parts.append(connector)
+    st.html(f'<div style="display:flex;align-items:flex-start;margin-bottom:24px;padding:0 8px;">{"".join(parts)}</div>')
+
+
 def render_verification():
     st.html(f"""
 <div style="margin-bottom:16px;">
@@ -2141,234 +2169,231 @@ def render_verification():
     <h2 style="font-size:22px;font-weight:800;color:#111827;margin:0;">候选人规则验证</h2>
     {_role_badge("候选人视角")}
   </div>
-  <p style="font-size:14px;color:#6b7280;margin:0;">
-    粘贴收到的岗位 JD → AI 提取评估维度 → 调整至与 HR 一致的权重 → 生成指纹 → 与邮件对比
-  </p>
 </div>""")
 
-    # 原理说明
-    st.html("""
-<div style="background:#F0F4FA;border:1px solid #C8D8EA;border-radius:12px;
-            padding:16px 18px;font-size:13px;color:#3D3A36;line-height:1.7;margin-bottom:16px;">
-  <strong>🔍 验证原理</strong><br/>
-  规则指纹（Hash）由「<strong>维度名称 + 权重</strong>」列表计算得出。
-  由于评估维度与 JD 任职要求<strong>一一对应</strong>，只要你手上有相同的 JD 原文，
-  用相同的 AI 提取后得到的维度名称应完全一致。<br/>
-  将权重调整为与 HR 公示的权重相同后，生成的指纹若与邮件中的一致，
-  即可证明规则<strong>自发布后未被修改</strong>。<br/><br/>
-  <strong>📌 本系统使用模型</strong>：<code>claude-3.5-haiku</code>（经由 OpenRouter）。
-  候选人可在 <a href="https://openrouter.ai" target="_blank" style="color:#2D4A7A;text-decoration:underline;">openrouter.ai</a>
-  选择同款模型，粘贴相同 JD 原文，所提取的维度名称应与公示页完全一致。
-</div>""")
+    step = st.session_state.get("verify_step", 1)
+    _verify_step_bar(step)
 
-    if not has_api_key():
-        # ── 离线演示模式：选择预设岗位，跳过 AI 提取 ──────────────────────
+    # ══ 第一步：提取维度 ══════════════════════════════════════════════════════
+    if step == 1:
         st.html("""
-<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;
-            padding:12px 18px;margin:8px 0 16px;
-            display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e;">
-  <span style="font-size:18px;">📋</span>
-  <div>
-    <strong>离线演示模式</strong> — 未配置 API Key，AI 提取功能不可用。<br/>
-    <span style="font-size:12px;color:#b45309;">选择预设岗位可完整体验维度权重调整与规则指纹验证。</span>
-  </div>
+<div style="background:#F0F4FA;border:1px solid #C8D8EA;border-radius:12px;
+            padding:14px 18px;font-size:13px;color:#3D3A36;line-height:1.7;margin-bottom:20px;">
+  <strong>🔍 验证原理</strong> — 规则指纹由「维度名称 + 权重」计算得出。
+  只要你用相同的 JD 提取维度、设置相同的权重，生成的指纹应与邮件中的一致，
+  即可自证规则<strong>从未被修改</strong>，无需信任任何第三方。
 </div>""")
-        st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 8px;">① 选择预设岗位（替代 JD 文本输入）</p>')
-        _oc1, _oc2 = st.columns(2)
-        with _oc1:
-            if st.button("🎯 产品经理岗", key="offline_pm", use_container_width=True):
-                st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["pm"]["dims"])
-                st.session_state["offline_job"] = "pm"
-                for _d in JOB_PRESETS["pm"]["dims"]:
-                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
-                st.rerun()
-        with _oc2:
-            if st.button("⚙️ 后端开发岗", key="offline_dev", use_container_width=True):
-                st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["dev"]["dims"])
-                st.session_state["offline_job"] = "dev"
-                for _d in JOB_PRESETS["dev"]["dims"]:
-                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
-                st.rerun()
 
-        _off_job = st.session_state.get("offline_job")
-        if _off_job:
-            _off_preset = JOB_PRESETS[_off_job]
-            st.html(f"""
-<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;
-            padding:10px 14px;margin:8px 0;font-size:13px;color:#166534;">
-  ✅ 已加载「{_off_preset["label"]}」预设维度（共 {len(_off_preset["dims"])} 个）
-  — 验证维度名称与权重的 Hash 计算过程同线上完全一致
-</div>""")
-            if st.button("📋 查看岗位 JD", key="jd_btn_verify"):
-                _jd_dialog(_off_preset["label"], _off_preset["jd"])
-    else:
-        # ── 在线模式：JD 文本输入 + AI 提取 ────────────────────────────
-        st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">① 粘贴岗位 JD（需包含「任职要求」部分）</p>')
-        jd_input = st.text_area(
-            "JD 文本",
-            key="verify_jd",
-            height=200,
-            placeholder="将招聘 JD 全文粘贴至此，系统将自动识别「任职要求」部分……",
-            label_visibility="collapsed",
-        )
-
-        if st.button("🤖 AI 提取评估维度", key="verify_extract",
-                     disabled=not jd_input.strip(), type="primary"):
-            with st.spinner("AI 正在从任职要求中提取评估维度…"):
-                dims, err = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
-            if dims:
-                st.session_state["verify_dims"] = dims
-                for d in dims:
-                    st.session_state[f"vw_{d['id']}"] = d["weight"]
-                st.rerun()
-            else:
-                st.error(f"维度提取失败：{err}")
-
-    verify_dims = st.session_state.get("verify_dims")
-    if not verify_dims:
         if not has_api_key():
-            st.html('<p style="font-size:13px;color:#9ca3af;margin-top:8px;">👆 请先选择上方预设岗位</p>')
-        return
+            st.html("""
+<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;
+            padding:12px 18px;margin-bottom:16px;font-size:13px;color:#92400e;">
+  <strong>离线演示模式</strong> — 选择预设岗位直接加载维度，跳过 AI 提取步骤。
+</div>""")
+            _oc1, _oc2 = st.columns(2)
+            with _oc1:
+                if st.button("🎯 产品经理岗", key="offline_pm", use_container_width=True):
+                    st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["pm"]["dims"])
+                    st.session_state["offline_job"] = "pm"
+                    for _d in JOB_PRESETS["pm"]["dims"]:
+                        st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                    st.session_state["verify_step"] = 2
+                    st.rerun()
+            with _oc2:
+                if st.button("⚙️ 后端开发岗", key="offline_dev", use_container_width=True):
+                    st.session_state["verify_dims"] = copy.deepcopy(JOB_PRESETS["dev"]["dims"])
+                    st.session_state["offline_job"] = "dev"
+                    for _d in JOB_PRESETS["dev"]["dims"]:
+                        st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                    st.session_state["verify_step"] = 2
+                    st.rerun()
+        else:
+            jd_input = st.text_area(
+                "JD 文本", key="verify_jd", height=220,
+                placeholder="将招聘 JD 全文粘贴至此，系统将自动识别「任职要求」部分……",
+                label_visibility="collapsed",
+            )
+            if st.button("🤖 AI 提取评估维度", key="verify_extract",
+                         disabled=not jd_input.strip(), type="primary"):
+                with st.spinner("AI 正在从任职要求中提取评估维度…"):
+                    dims, err = extract_dims_from_jd(jd_input.strip(), "待验证岗位")
+                if dims:
+                    st.session_state["verify_dims"] = dims
+                    for d in dims:
+                        st.session_state[f"vw_{d['id']}"] = d["weight"]
+                    st.session_state["verify_step"] = 2
+                    st.rerun()
+                else:
+                    st.error(f"维度提取失败：{err}")
 
-    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+    # ══ 第二步：确认维度 & 调整权重 ══════════════════════════════════════════
+    elif step == 2:
+        verify_dims = st.session_state.get("verify_dims", [])
 
-    # ── 一键加载锁定规则权重 ──────────────────────────────────────────────────
-    _off_job = st.session_state.get("offline_job")
-    _locked  = st.session_state.get("locked_jobs", {})
-    # 在线模式下，若只有一个锁定岗位，自动关联；否则让用户选
-    if not _off_job and _locked:
-        _candidates = [jk for jk in _locked if any(
-            d["label"] == vd["label"] for d in _locked[jk]["dims"] for vd in verify_dims
-        )]
-        if len(_candidates) == 1:
-            _off_job = _candidates[0]
-        elif len(_locked) == 1:
-            _off_job = list(_locked.keys())[0]
-    if _off_job and _off_job in _locked:
-        _locked_dims = _locked[_off_job]["dims"]
-        _locked_fp   = _locked[_off_job]["fingerprint"]
-        _col_load, _col_info = st.columns([1, 2])
-        with _col_load:
-            if st.button("🔒 一键加载已锁定规则权重", key="load_locked_weights",
-                         use_container_width=True, type="primary"):
-                for _d in _locked_dims:
-                    st.session_state[f"vw_{_d['id']}"] = _d["weight"]
-                st.rerun()
-        with _col_info:
-            st.html(f'<p style="font-size:12px;color:#2563EB;margin:10px 0 0;">'
-                    f'HR 已锁定规则指纹：<code style="font-weight:700;">{_locked_fp}</code>'
-                    f'，加载权重后验证指纹是否一致</p>')
-    st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
-
-    # Step 2：展示维度 & 调整权重
-    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">② 确认维度名称，并调整权重至与 HR 公示的一致</p>')
-
-    dim_rows_html = "".join(
-        f"""<div style="display:flex;align-items:center;justify-content:space-between;
-                        padding:9px 0;border-bottom:1px solid #f3f4f6;">
-  <span style="font-size:13px;font-weight:500;color:#111827;">
-    {i+1}. {d['label']}
-  </span>
-  <span style="font-size:11px;color:#9ca3af;">（与 JD 第{i+1}条任职要求对应）</span>
-</div>"""
-        for i, d in enumerate(verify_dims)
-    )
-    st.html(f"""
+        # 维度列表
+        dim_rows_html = "".join(
+            f'<div style="display:flex;align-items:center;justify-content:space-between;'
+            f'padding:9px 0;border-bottom:1px solid #f3f4f6;">'
+            f'<span style="font-size:13px;font-weight:500;color:#111827;">{i+1}. {d["label"]}</span>'
+            f'<span style="font-size:11px;color:#9ca3af;">与 JD 第 {i+1} 条任职要求对应</span></div>'
+            for i, d in enumerate(verify_dims)
+        )
+        st.html(f"""
 <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;
-            padding:12px 16px;margin-bottom:12px;
-            box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            padding:12px 16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);">
   <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;
-             letter-spacing:.06em;margin:0 0 4px;">AI 提取的维度名称（来自 JD 任职要求原文）</p>
+             letter-spacing:.06em;margin:0 0 4px;">AI 提取的维度（来自 JD 任职要求原文）</p>
   {dim_rows_html}
 </div>""")
 
-    with st.container(border=True):
-        _vbar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
-        _vcur_weights = [st.session_state.get(f"vw_{d['id']}", d["weight"]) for d in verify_dims]
-        _vbars_html = "".join(
-            f'<div style="flex:{w};background:{_vbar_colors[i % len(_vbar_colors)]};height:10px;'
-            f'{"border-radius:6px 0 0 6px;" if i == 0 else ""}'
-            f'{"border-radius:0 6px 6px 0;" if i == len(verify_dims)-1 else ""}"></div>'
-            for i, (d, w) in enumerate(zip(verify_dims, _vcur_weights))
-        )
-        st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_vbars_html}</div>')
+        # 一键加载
+        _off_job = st.session_state.get("offline_job")
+        _locked  = st.session_state.get("locked_jobs", {})
+        if not _off_job and _locked:
+            _cands = [jk for jk in _locked if any(
+                d["label"] == vd["label"] for d in _locked[jk]["dims"] for vd in verify_dims
+            )]
+            if len(_cands) == 1:
+                _off_job = _cands[0]
+            elif len(_locked) == 1:
+                _off_job = list(_locked.keys())[0]
+        if _off_job and _off_job in _locked:
+            _locked_fp = _locked[_off_job]["fingerprint"]
+            _lc1, _lc2 = st.columns([1, 2])
+            with _lc1:
+                if st.button("🔒 一键加载已锁定规则权重", key="load_locked_weights",
+                             use_container_width=True, type="primary"):
+                    for _d in _locked[_off_job]["dims"]:
+                        st.session_state[f"vw_{_d['id']}"] = _d["weight"]
+                    st.rerun()
+            with _lc2:
+                st.html(f'<p style="font-size:12px;color:#2563EB;margin:10px 0 0;">'
+                        f'HR 已锁定规则指纹：<code style="font-weight:700;">{_locked_fp}</code></p>')
 
-        new_dims = []
-        total = 0
-        _vinp_cols = st.columns(len(verify_dims))
-        for i, (col, d) in enumerate(zip(_vinp_cols, verify_dims)):
-            with col:
-                st.html(
-                    f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
-                    f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
-                    f'background:{_vbar_colors[i % len(_vbar_colors)]};display:inline-block;"></span>'
-                    f'<span style="font-size:12px;font-weight:600;color:#374151;'
-                    f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span>'
-                    f'</div>'
-                )
-                w = st.number_input(
-                    d["label"], min_value=5, max_value=60, step=5,
-                    value=st.session_state.get(f"vw_{d['id']}", d["weight"]),
-                    key=f"vw_{d['id']}", label_visibility="collapsed",
-                )
-                new_dims.append({**d, "weight": w})
-                total += w
+        # 权重调整
+        with st.container(border=True):
+            _vbar_colors = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#0ea5e9"]
+            _vcur = [st.session_state.get(f"vw_{d['id']}", d["weight"]) for d in verify_dims]
+            _vbars = "".join(
+                f'<div style="flex:{w};background:{_vbar_colors[i%len(_vbar_colors)]};height:10px;'
+                f'{"border-radius:6px 0 0 6px;" if i==0 else ""}'
+                f'{"border-radius:0 6px 6px 0;" if i==len(verify_dims)-1 else ""}"></div>'
+                for i, (d, w) in enumerate(zip(verify_dims, _vcur))
+            )
+            st.html(f'<div style="display:flex;gap:2px;margin-bottom:14px;">{_vbars}</div>')
+            new_dims = []
+            total = 0
+            for i, (col, d) in enumerate(zip(st.columns(len(verify_dims)), verify_dims)):
+                with col:
+                    st.html(
+                        f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+                        f'<span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;'
+                        f'background:{_vbar_colors[i%len(_vbar_colors)]};display:inline-block;"></span>'
+                        f'<span style="font-size:12px;font-weight:600;color:#374151;'
+                        f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{d["label"]}</span></div>'
+                    )
+                    w = st.number_input(
+                        d["label"], min_value=5, max_value=60, step=5,
+                        value=st.session_state.get(f"vw_{d['id']}", d["weight"]),
+                        key=f"vw_{d['id']}", label_visibility="collapsed",
+                    )
+                    new_dims.append({**d, "weight": w})
+                    total += w
+            if total == 100:
+                st.html('<span style="background:#dcfce7;color:#166534;border-radius:999px;'
+                        'padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 100%</span>')
+            else:
+                st.html(f'<span style="background:#fef3c7;color:#92400e;border-radius:999px;'
+                        f'padding:3px 12px;font-size:13px;font-weight:600;">⚠ 总计 {total}%，需调整至 100%</span>')
 
-        if total == 100:
-            st.html('<span style="background:#dcfce7;color:#166534;border-radius:999px;'
-                    'padding:3px 12px;font-size:13px;font-weight:600;">✅ 总计 100%</span>')
-        else:
-            st.html(f'<span style="background:#fef3c7;color:#92400e;border-radius:999px;'
-                    f'padding:3px 12px;font-size:13px;font-weight:600;">⚠ 总计 {total}%，需调整至 100%</span>')
+        st.session_state["verify_new_dims"] = new_dims
 
-    # Step 3：生成指纹
-    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
-    st.html('<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 6px;">③ 生成规则指纹，与邮件中的指纹对比</p>')
+        st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
+        nav_c1, nav_c2, _ = st.columns([1, 1, 4])
+        with nav_c1:
+            if st.button("← 上一步", key="v_prev2", use_container_width=True):
+                st.session_state["verify_step"] = 1
+                st.rerun()
+        with nav_c2:
+            if st.button("下一步 →", key="v_next2", type="primary",
+                         disabled=(total != 100), use_container_width=True):
+                st.session_state["verify_step"] = 3
+                st.rerun()
 
-    if total == 100:
+    # ══ 第三步：生成指纹 ══════════════════════════════════════════════════════
+    elif step == 3:
+        new_dims = st.session_state.get("verify_new_dims", [])
         fp = rule_fingerprint(new_dims)
-        st.html(f"""
-<div style="background:#111827;border-radius:16px;padding:24px 28px;color:white;">
-  <p style="font-size:11px;color:#9ca3af;text-transform:uppercase;
-             letter-spacing:.06em;margin:0 0 10px;">生成的规则指纹</p>
+
+        # 与锁定指纹对比
+        _off_job = st.session_state.get("offline_job")
+        _locked  = st.session_state.get("locked_jobs", {})
+        if not _off_job and _locked:
+            _off_job = list(_locked.keys())[0] if len(_locked) == 1 else None
+        _hr_fp = _locked[_off_job]["fingerprint"] if (_off_job and _off_job in _locked) else None
+        _match = (_hr_fp and fp == _hr_fp)
+
+        if _hr_fp:
+            _result_bg   = "#052e16" if _match else "#1c0a09"
+            _result_icon = "✓ 指纹一致" if _match else "✗ 指纹不一致"
+            _result_color = "#6ee7b7" if _match else "#f87171"
+            _result_msg  = ("规则自发布后未被修改，评估过程可信" if _match
+                            else "权重或维度名称可能与公示页存在差异，请返回上一步核查")
+            st.html(f"""
+<div style="background:#111827;border-radius:16px;padding:24px 28px;color:white;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+    <div>
+      <p style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        您生成的指纹</p>
+      <div style="font-family:monospace;font-size:34px;font-weight:900;
+                  color:#6ee7b7;letter-spacing:.2em;">{fp}</div>
+    </div>
+    <div>
+      <p style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        HR 锁定的指纹</p>
+      <div style="font-family:monospace;font-size:34px;font-weight:900;
+                  color:#9ca3af;letter-spacing:.2em;">{_hr_fp}</div>
+    </div>
+  </div>
+  <div style="background:{_result_bg};border-radius:10px;padding:12px 16px;margin-top:18px;">
+    <span style="color:{_result_color};font-weight:700;font-size:14px;">{_result_icon}</span>
+    <span style="color:#d1d5db;font-size:13px;margin-left:10px;">{_result_msg}</span>
+  </div>
+</div>""")
+        else:
+            st.html(f"""
+<div style="background:#111827;border-radius:16px;padding:24px 28px;color:white;margin-bottom:16px;">
+  <p style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;">
+    生成的规则指纹</p>
   <div style="font-family:monospace;font-size:36px;font-weight:900;
               color:#6ee7b7;letter-spacing:.2em;margin-bottom:14px;">{fp}</div>
   <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;
               font-size:12px;color:#9ca3af;line-height:1.7;">
-    将此指纹与你收到的邮件中的指纹对比：<br/>
-    <span style="color:#6ee7b7;font-weight:600;">✓ 一致</span>
-    → 规则自发布后未被修改，评估过程可信<br/>
-    <span style="color:#f87171;font-weight:600;">✗ 不一致</span>
-    → 权重可能未调整到位，或维度名称存在差异（见下方排查提示）
+    将此指纹与投递确认邮件中的指纹对比，一致即证明规则未被修改。
   </div>
 </div>""")
 
-        # 排查说明
-        st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
-        with st.expander("指纹不一致？查看排查步骤", expanded=False):
+        with st.expander("指纹不一致？查看排查步骤", expanded=not _match if _hr_fp else False):
             st.markdown("""
-**可能原因及排查方法：**
+1. **权重不一致** — 查看公司发布的规则公示页，确认每个维度的权重数值
+2. **维度名称细微差异** — AI 每次提取措辞可能略有不同，以公示页为准
+3. **JD 版本不同** — 请使用投递时收到的原始 JD，而非招聘页当前版本
 
-1. **权重不一致** — 查看公司发布的规则公示页，确认每个维度的权重数值后重新设置
-2. **维度名称细微差异** — AI 每次提取时措辞可能略有不同。
-   对比上方提取到的维度名称与公示页中的维度名称，若有出入，以公示页为准
-3. **JD 版本不同** — 请使用投递时收到的原始 JD 文本，而非岗位招聘页的当前版本
-
-> 指纹算法：FNV-1a Hash，输入为「维度名称 + 权重」的 JSON 序列，与系统完全一致
+> 指纹算法：FNV-1a Hash，输入为「维度名称 + 权重」的 JSON 序列
 """)
-    else:
-        st.html("""
-<div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:16px;
-            padding:32px;text-align:center;color:#9ca3af;font-size:14px;">
-  将权重总计调整为 100% 后，指纹将在此显示
-</div>""")
 
-    # 重置
-    st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
-    if st.button("🔄 重新输入 JD", key="verify_reset"):
-        st.session_state.pop("verify_dims", None)
-        st.session_state.pop("verify_jd", None)
-        st.rerun()
+        st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
+        back_c, reset_c, _ = st.columns([1, 1, 4])
+        with back_c:
+            if st.button("← 上一步", key="v_prev3", use_container_width=True):
+                st.session_state["verify_step"] = 2
+                st.rerun()
+        with reset_c:
+            if st.button("🔄 重新开始", key="verify_reset", use_container_width=True):
+                for k in ["verify_dims", "verify_jd", "verify_step", "verify_new_dims",
+                          "offline_job"]:
+                    st.session_state.pop(k, None)
+                st.rerun()
 
 
 # ─── 渲染入口 ─────────────────────────────────────────────────────────────────

@@ -379,6 +379,7 @@ def _init():
         "hiring_target":     120,
         "goto_tab":          -1,
         "cv_selected":       "",
+        "_db_restored":      False,  # 防止每次 rerun 都重复读库
     }
     for k, v in defs.items():
         if k not in st.session_state:
@@ -386,6 +387,32 @@ def _init():
 
 _init()
 init_db()
+
+# ─── 从数据库恢复 locked_jobs + screening_results（仅首次加载执行一次）────────
+if not st.session_state._db_restored:
+    import json as _json
+    _all_rules = get_all_rules()
+    # 每个岗位只取最新一条规则
+    _latest: dict[str, dict] = {}
+    for _r in _all_rules:
+        _jk = _r["job_key"]
+        if _jk not in _latest:
+            _latest[_jk] = _r
+    for _jk, _r in _latest.items():
+        if _jk not in st.session_state.locked_jobs:
+            st.session_state.locked_jobs[_jk] = {
+                "dims":        _json.loads(_r["dims_json"]),
+                "fingerprint": _r["fingerprint"],
+                "locked_at":   _r["created_at"],
+                "rule_id":     _r["id"],
+                "label":       _r["label"],
+            }
+        # 恢复该规则对应的筛选结果
+        _saved = get_screening_results(_r["id"])
+        st.session_state.screening_results.update(_saved)
+    if not st.session_state.active_job and st.session_state.locked_jobs:
+        st.session_state.active_job = list(st.session_state.locked_jobs.keys())[0]
+    st.session_state._db_restored = True
 
 def _sync_pool():
     st.session_state.pool = get_pool_db()

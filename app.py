@@ -766,8 +766,23 @@ def render_rule_builder():
     if st.button("📋 查看岗位 JD", key="jd_btn_rule_builder"):
         _jd_dialog(preset["label"], preset["jd"])
 
+    # 业务需求方参与说明
+    st.html("""
+<div style="background:#EFF4FF;border:1px solid #C7D9FF;border-radius:12px;
+            padding:12px 16px;margin:10px 0 16px;font-size:13px;color:#1E3A8A;
+            display:flex;gap:10px;align-items:flex-start;">
+  <span style="font-size:16px;flex-shrink:0;">💼</span>
+  <span>
+    <strong>此步骤由 HR 与业务需求方共同完成</strong>——业务方决定哪个能力维度更重要，
+    权重反映的是岗位的真实能力优先级。<br/>
+    <span style="color:#3B5FC0;">
+    业务方希望优先筛选「有能力的人」，这套维度体系直接测量岗位所需能力，
+    比学历标签给出更准确的信号。
+    </span>
+  </span>
+</div>""")
+
     # 维度权重卡
-    st.markdown('<br/>', unsafe_allow_html=True)
     with st.container(border=True):
         new_dims = []
         total = 0

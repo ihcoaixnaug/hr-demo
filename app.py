@@ -759,19 +759,56 @@ def render_rule_builder():
                    f'padding:2px 8px;font-size:11px;font-weight:600;">✓ 已锁定</span>'
                    if is_done else "")
         with col:
-            _mb = "margin-bottom:-8px;" if (not is_sel and not is_done) else "margin-bottom:4px;"
-            st.html(f"""
-<div style="border:2px solid {_border};border-radius:14px;background:{_bg};
-            padding:18px 20px 14px;{_mb}">
+            if is_sel or is_done:
+                # 已选中 / 已锁定：静态卡片，无需交互
+                st.html(f"""
+<div style="border:2px solid {_border};border-radius:14px;background:{_bg};padding:18px 20px 18px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <span style="font-size:17px;font-weight:800;color:#111827;">{emoji} {p['label']}</span>
     {_badge}
   </div>
   <p style="font-size:13px;color:#6b7280;margin:0;">{p['desc']}</p>
 </div>""")
-            if not is_sel and not is_done:
-                if st.button("选择此岗位 →", key=btn_key,
-                             use_container_width=True, type="secondary"):
+            else:
+                # 未选中：整张卡片 = 可点击按钮
+                _mid = f"jcm_{jk_opt}"
+                st.markdown(f'<div id="{_mid}"></div>', unsafe_allow_html=True)
+                st.markdown(f"""<style>
+div:has(> div > [id="{_mid}"]) + div [data-testid^="stBaseButton"] button {{
+    border: 2px solid #e5e7eb !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    min-height: 90px !important;
+    height: auto !important;
+    text-align: left !important;
+    padding: 16px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+    line-height: 1.3 !important;
+    cursor: pointer !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+}}
+div:has(> div > [id="{_mid}"]) + div [data-testid^="stBaseButton"] button::after {{
+    content: "{p['desc']}";
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    color: #6b7280 !important;
+    margin-top: 5px !important;
+    line-height: 1.4 !important;
+    display: block !important;
+    white-space: normal !important;
+}}
+div:has(> div > [id="{_mid}"]) + div [data-testid^="stBaseButton"] button:hover {{
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 3px #e0e7ff !important;
+    background: #fafafa !important;
+}}
+</style>""", unsafe_allow_html=True)
+                if st.button(f"{emoji} {p['label']}", key=btn_key, use_container_width=True):
                     _load_job(jk_opt)
 
     jk = st.session_state.selected_job
